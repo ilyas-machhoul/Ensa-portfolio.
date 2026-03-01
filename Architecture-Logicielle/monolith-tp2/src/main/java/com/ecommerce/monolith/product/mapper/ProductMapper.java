@@ -16,6 +16,7 @@ public interface ProductMapper {
 
     List<ProductDTO> toDTOList(List<Product> products);
 
+    @Mapping(target = "id", ignore = true)
     Product toEntity(ProductRequest request);
 
     @Mapping(target = "id", ignore = true)
