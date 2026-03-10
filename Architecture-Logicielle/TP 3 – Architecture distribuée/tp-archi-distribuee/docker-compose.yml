@@ -1,0 +1,61 @@
+services:
+
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+
+  app1:
+    build: ./app
+    restart: always
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+    environment:
+      PORT: 3001
+      INSTANCE: "Instance-1"
+    ports:
+      - "3001:3001"
+
+  app2:
+    build: ./app
+    restart: always
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+    environment:
+      PORT: 3002
+      INSTANCE: "Instance-2"
+    ports:
+      - "3002:3002"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    depends_on:
+      - app1
+      - app2
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+
+volumes:
+  mongo_data:
