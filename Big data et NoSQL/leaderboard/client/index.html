@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX — Live Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080b12;--surface:#0e1420;--card:#131a28;--border:rgba(255,255,255,0.07);
+  --accent:#00e5ff;--gold:#f0a500;--silver:#9ba8b5;--bronze:#cd7f32;
+  --purple:#8b5cf6;--green:#10b981;--red:#ef4444;--text:#e2e8f0;--muted:#64748b;
+  --fh:'Rajdhani',sans-serif;--fm:'Space Mono',monospace;--fb:'Inter',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,229,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* HEADER */
+header{position:relative;z-index:10;border-bottom:1px solid var(--border);padding:0 2rem;
+  display:flex;align-items:center;justify-content:space-between;height:64px;
+  background:rgba(8,11,18,.92);backdrop-filter:blur(12px)}
+.logo{font-family:var(--fh);font-size:28px;font-weight:700;letter-spacing:6px;color:var(--accent)}
+.logo span{color:var(--text)}
+.nav-links{display:flex;gap:16px}
+.nav-links a{font-size:13px;color:var(--muted);text-decoration:none;font-family:var(--fm);transition:color .15s}
+.nav-links a:hover,.nav-links a.active{color:var(--accent)}
+.hstats{display:flex;gap:24px;align-items:center}
+.hstat{display:flex;flex-direction:column;align-items:flex-end;font-size:11px;color:var(--muted);font-family:var(--fm)}
+.hstat b{font-size:18px;color:var(--text);font-weight:700;line-height:1.2}
+.hstat b.live{color:var(--accent)}
+.pulse{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;animation:pa 2s ease-in-out infinite}
+@keyframes pa{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+
+/* LAYOUT */
+.layout{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:2rem;display:grid;grid-template-columns:300px 1fr;gap:1.5rem}
+.sidebar{display:flex;flex-direction:column;gap:1rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-family:var(--fh);font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.card-body{padding:18px}
+
+/* FORM */
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;font-family:var(--fm)}
+.fg input,.fg select{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--fb);outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.fg select option{background:#1a2035}
+.btn{width:100%;padding:12px;border:none;border-radius:8px;cursor:pointer;font-family:var(--fh);font-size:16px;font-weight:700;letter-spacing:3px;text-transform:uppercase;transition:all .2s}
+.btn-a{background:var(--accent);color:#000;box-shadow:0 0 20px rgba(0,229,255,.3)}
+.btn-a:hover{box-shadow:0 0 32px rgba(0,229,255,.55);transform:translateY(-1px)}
+.btn-a:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* SCORE PAD */
+.spad{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bs{padding:11px 8px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-family:var(--fh);font-size:15px;font-weight:700;transition:all .15s}
+.bs:hover{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
+.bs:active{transform:scale(.97)}
+.bs.rnd{grid-column:1/-1;background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4);color:var(--purple)}
+
+/* PROFILE */
+.prof{display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 0}
+.av-big{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:22px;font-weight:700;border:2px solid var(--accent);box-shadow:0 0 16px rgba(0,229,255,.3)}
+.pname{font-family:var(--fh);font-size:20px;font-weight:700}
+.ploc{font-size:12px;color:var(--muted)}
+.rbadges{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.rb{padding:4px 10px;border-radius:20px;font-size:11px;font-family:var(--fm);border:1px solid}
+.rb.rw{background:rgba(240,165,0,.15);border-color:rgba(240,165,0,.4);color:var(--gold)}
+.rb.rc{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4);color:var(--purple)}
+.rb.rs{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)}
+.pscore{font-family:var(--fm);font-size:26px;font-weight:700;color:var(--accent)}
+.pscore span{font-size:12px;color:var(--muted)}
+
+/* THRESHOLD PROGRESS */
+.thr-section{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.thr-item{display:flex;flex-direction:column;gap:4px}
+.thr-row{display:flex;justify-content:space-between;font-size:11px;font-family:var(--fm)}
+.thr-row .lbl{color:var(--muted)} .thr-row .val{color:var(--text)}
+.thr-bar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+.thr-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.thr-fill.tw{background:var(--gold)} .thr-fill.tc{background:var(--purple)} .thr-fill.ok{background:var(--green)}
+.thr-msg{font-size:10px;font-family:var(--fm);text-align:center;padding:5px 10px;border-radius:6px;margin-top:3px}
+.thr-msg.locked{color:var(--red);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)}
+.thr-msg.unlocked{color:var(--green);background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2)}
+
+/* ACHIEVEMENTS */
+.ach-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ach-item{padding:7px 10px;border-radius:8px;background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.2);font-size:11px;color:var(--gold);font-family:var(--fm);text-align:center}
+.ach-item.lk{background:rgba(255,255,255,.03);border-color:var(--border);color:var(--muted)}
+
+/* MAIN */
+.main{display:flex;flex-direction:column;gap:1rem}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{padding:8px 20px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;transition:all .2s}
+.tab:hover{border-color:var(--accent);color:var(--accent)}
+.tab.act{background:rgba(0,229,255,.12);border-color:var(--accent);color:var(--accent)}
+
+/* SCOPE BANNER */
+.scope-banner{font-size:12px;padding:8px 14px;border-radius:8px;font-family:var(--fm);border:1px solid}
+.scope-banner.bw{background:rgba(240,165,0,.06);border-color:rgba(240,165,0,.25);color:var(--gold)}
+.scope-banner.bc{background:rgba(139,92,246,.06);border-color:rgba(139,92,246,.25);color:var(--purple)}
+.scope-banner.bs2{background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.25);color:var(--green)}
+
+/* BOARD — world single list */
+.board-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.board-hdr{display:grid;grid-template-columns:50px 1fr 110px 70px;padding:10px 18px;font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+.board-row{display:grid;grid-template-columns:50px 1fr 110px 70px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;cursor:pointer;transition:background .18s}
+.board-row:last-child{border-bottom:none}
+.board-row:hover{background:rgba(255,255,255,.04)}
+.board-row.me{background:rgba(0,229,255,.05);border-left:3px solid var(--accent)}
+.board-row.ru{animation:fgu .5s ease} .board-row.rd{animation:fgd .5s ease}
+@keyframes fgu{0%,100%{background:transparent}35%{background:rgba(16,185,129,.15)}}
+@keyframes fgd{0%,100%{background:transparent}35%{background:rgba(239,68,68,.1)}}
+.rn{font-family:var(--fh);font-size:20px;font-weight:700;color:var(--muted);text-align:center}
+.rn.g{color:var(--gold);font-size:22px} .rn.s{color:var(--silver)} .rn.b{color:var(--bronze)}
+.pi{display:flex;align-items:center;gap:10px;min-width:0}
+.av-sm{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:12px;font-weight:700;flex-shrink:0}
+.pn{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl{font-size:11px;color:var(--muted);font-family:var(--fm)}
+.sv{font-family:var(--fm);font-size:14px;font-weight:700;text-align:right}
+.dv{font-family:var(--fm);font-size:11px;text-align:right}
+.dv.p{color:var(--green)} .dv.n{color:var(--red)}
+
+/* FIX 2 — SUB-LISTS (continent & state views) */
+.sublists{display:flex;flex-direction:column;gap:1rem}
+.sublist-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.sublist-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.02)}
+.sublist-name{font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.sublist-count{font-size:11px;color:var(--muted);font-family:var(--fm)}
+.sublist-mine{font-size:10px;padding:3px 9px;border-radius:20px;font-family:var(--fm)}
+.sublist-mine.cont{background:rgba(139,92,246,.2);color:var(--purple);border:1px solid rgba(139,92,246,.4)}
+.sublist-mine.state{background:rgba(16,185,129,.2);color:var(--green);border:1px solid rgba(16,185,129,.4)}
+.sublist-locked{padding:14px 18px;font-size:12px;font-family:var(--fm);color:var(--muted);display:flex;align-items:center;gap:8px}
+.sublist-locked .needed{color:var(--red)}
+
+/* STATUS BAR */
+.status-bar{display:flex;align-items:center;gap:10px;padding:8px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);font-family:var(--fm);background:rgba(8,11,18,.8)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.status-dot.connected{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot.connecting{background:var(--gold);animation:pa 1s infinite}
+.status-dot.error{background:var(--red)}
+.empty{padding:40px;text-align:center;color:var(--muted);font-family:var(--fh);font-size:16px;letter-spacing:2px;text-transform:uppercase}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:440px;max-width:95vw;max-height:90vh;overflow-y:auto;animation:mi .25s ease}
+@keyframes mi{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.mhead{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mclose{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:all .15s}
+.mclose:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.mbody{padding:22px;display:flex;flex-direction:column;gap:18px}
+.mav{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:26px;font-weight:700;border:3px solid var(--accent);box-shadow:0 0 20px rgba(0,229,255,.22);margin:0 auto}
+.mscore{font-family:var(--fm);font-size:32px;font-weight:700;color:var(--accent);text-align:center}
+.msec{font-family:var(--fh);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.mach-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mach{padding:6px 9px;border-radius:7px;font-size:10px;font-family:var(--fm);text-align:center;background:rgba(240,165,0,.08);border:1px solid rgba(240,165,0,.2);color:var(--gold)}
+.mach.lk{background:rgba(255,255,255,.03);border-color:var(--border);color:var(--muted)}
+.mhist{display:flex;flex-direction:column;gap:3px;max-height:140px;overflow-y:auto}
+.hi{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)}
+.hi:last-child{border-bottom:none}
+.mloading{text-align:center;padding:36px;color:var(--muted);font-family:var(--fh);font-size:16px;letter-spacing:2px;text-transform:uppercase}
+
+/* TOAST */
+.toast-wrap{position:fixed;top:78px;right:22px;z-index:200;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card);border:1px solid rgba(240,165,0,.5);border-radius:12px;padding:12px 16px;min-width:240px;animation:ti .35s ease,to .35s ease 3.6s forwards}
+@keyframes ti{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes to{to{opacity:0;transform:translateX(28px)}}
+.tt{font-family:var(--fh);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.tb{font-size:14px;font-weight:500} .ts{font-size:11px;color:var(--muted);margin-top:2px}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">APEX<span>RANK</span></div>
+  <nav class="nav-links"><a href="index.html" class="active">Game</a><a href="admin.html">Admin</a></nav>
+  <div class="hstats">
+    <div class="hstat"><span>Online</span><b class="live" id="h-online">—</b></div>
+    <div class="hstat"><span>Updates/s</span><b id="h-eps">0</b></div>
+    <div class="hstat"><span>Redis ops</span><b id="h-ops">0</b></div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">
+      <span class="pulse" id="hpulse" style="background:var(--muted);box-shadow:none"></span>
+      <span id="hstatus">Disconnected</span>
+    </div>
+  </div>
+</header>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay" onclick="closeModalOverlay(event)">
+  <div class="modal" id="modal">
+    <div class="mhead">
+      <span class="card-title" id="modal-title">Player Profile</span>
+      <button class="mclose" onclick="hideModal()">✕</button>
+    </div>
+    <div class="mbody" id="modal-body"><div class="mloading">Loading...</div></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="card" id="join-card">
+      <div class="card-head"><span class="card-title">Join Game</span></div>
+      <div class="card-body">
+        <div class="fg"><label>Username</label><input id="f-u" type="text" placeholder="Your name" maxlength="20"></div>
+        <div class="fg">
+          <label>State / Region</label>
+          <select id="f-s">
+            <option value="CA">California (CA) — North America</option>
+            <option value="TX">Texas (TX) — North America</option>
+            <option value="NY">New York (NY) — North America</option>
+            <option value="FL">Florida (FL) — North America</option>
+            <option value="WA">Washington (WA) — North America</option>
+            <option value="SP">São Paulo (SP) — South America</option>
+            <option value="RJ">Rio de Janeiro (RJ) — South America</option>
+            <option value="MG">Minas Gerais (MG) — South America</option>
+            <option value="BCN">Barcelona (BCN) — Europe</option>
+            <option value="MAD">Madrid (MAD) — Europe</option>
+            <option value="IDF">Paris (IDF) — Europe</option>
+            <option value="TYO">Tokyo (TYO) — Asia</option>
+            <option value="SH">Shanghai (SH) — Asia</option>
+          </select>
+        </div>
+        <button class="btn btn-a" id="btn-join">ENTER THE ARENA</button>
+      </div>
+    </div>
+
+    <div class="card" id="prof-card" style="display:none">
+      <div class="card-head"><span class="card-title">My Profile</span></div>
+      <div class="card-body">
+        <div class="prof">
+          <div class="av-big" id="p-av"></div>
+          <div class="pname" id="p-nm"></div>
+          <div class="ploc"  id="p-lc"></div>
+          <div class="rbadges">
+            <span class="rb rw" id="p-rw">#— world</span>
+            <span class="rb rc" id="p-rc">#— continent</span>
+            <span class="rb rs" id="p-rs">#— state</span>
+          </div>
+          <div class="pscore"><span>SCORE </span><span id="p-sc">0</span></div>
+        </div>
+        <div class="thr-section">
+          <div class="thr-item">
+            <div class="thr-row"><span class="lbl">World (≥ 1 000)</span><span class="val" id="pw-val">0 / 1000</span></div>
+            <div class="thr-bar"><div class="thr-fill tw" id="pw-bar" style="width:0%"></div></div>
+            <div class="thr-msg locked" id="pw-msg">Need 1000 pts to appear in World</div>
+          </div>
+          <div class="thr-item">
+            <div class="thr-row"><span class="lbl">Continent (≥ 750)</span><span class="val" id="pc-val">0 / 750</span></div>
+            <div class="thr-bar"><div class="thr-fill tc" id="pc-bar" style="width:0%"></div></div>
+            <div class="thr-msg locked" id="pc-msg">Need 750 pts to appear in Continent</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="score-card" style="display:none">
+      <div class="card-head"><span class="card-title">Score Actions</span></div>
+      <div class="card-body">
+        <div class="spad">
+          <button class="bs" onclick="sendScore(10)">+10</button>
+          <button class="bs" onclick="sendScore(50)">+50</button>
+          <button class="bs" onclick="sendScore(100)">+100</button>
+          <button class="bs" onclick="sendScore(250)">+250</button>
+          <button class="bs" onclick="sendScore(500)">+500</button>
+          <button class="bs" onclick="sendScore(1000)">+1000</button>
+          <button class="bs rnd" onclick="sendScore(Math.floor(Math.random()*500)+50)">RANDOM</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="ach-card" style="display:none">
+      <div class="card-head">
+        <span class="card-title">Achievements</span>
+        <span style="font-size:12px;color:var(--muted);font-family:var(--fm)" id="ach-cnt">0/9</span>
+      </div>
+      <div class="card-body"><div class="ach-grid" id="ach-grid"></div></div>
+    </div>
+
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div class="tabs">
+        <button class="tab act" id="tab-world"     onclick="setScope('world')">World</button>
+        <button class="tab"     id="tab-continent" onclick="setScope('continent')">Continent</button>
+        <button class="tab"     id="tab-state"     onclick="setScope('state')">State</button>
+      </div>
+      <div id="scope-banner" class="scope-banner bw">Global ranking — score ≥ 1 000 to appear</div>
+    </div>
+
+    <!-- WORLD view: single ranked list -->
+    <div id="view-world">
+      <div class="board-card">
+        <div class="board-hdr"><div>Rank</div><div>Player</div><div style="text-align:right">Score</div><div style="text-align:right">Delta</div></div>
+        <div id="world-body"><div class="empty">Waiting for players...</div></div>
+      </div>
+    </div>
+
+    <!-- CONTINENT view: one sub-card per continent -->
+    <div id="view-continent" style="display:none">
+      <div class="sublists" id="cont-sublists"></div>
+    </div>
+
+    <!-- STATE view: one sub-card per state -->
+    <div id="view-state" style="display:none">
+      <div class="sublists" id="state-sublists"></div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot" id="ws-dot"></div>
+      <span id="ws-label">Not connected</span>
+      <span style="margin-left:auto" id="last-upd"></span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SC = {CA:'NA',TX:'NA',NY:'NA',FL:'NA',WA:'NA',SP:'SA',RJ:'SA',MG:'SA',BCN:'EU',MAD:'EU',IDF:'EU',TYO:'AS',SH:'AS'};
+const CONT_LABEL = {NA:'North America',EU:'Europe',SA:'South America',AS:'Asia'};
+const AVCOLS = [['#1a0533','#d946ef'],['#0a1a2e','#00e5ff'],['#1a1a00','#f0a500'],['#0a2018','#10b981'],['#1a0a0a','#ef4444'],['#0f0a24','#8b5cf6']];
+const THRESHOLDS = {world:1000,continent:750,state:0};
+const ACHDEFS = [
+  {id:'first_score',l:'First Blood'},{id:'top1_world',l:'#1 World'},{id:'top3_world',l:'Top 3 World'},
+  {id:'top10_world',l:'Top 10 World'},{id:'top1_continent',l:'Continent #1'},{id:'top1_state',l:'State #1'},
+  {id:'score_1k',l:'1K Club'},{id:'score_5k',l:'5K Legend'},{id:'score_10k',l:'10K God'},
+];
+
+let myId=null,myState=null,myCont=null,myScore=0;
+let ws=null,currentScope='world',prevScores={},myAch=new Set();
+let lastData={world:[],continents:{},states:{}};
+let redisOps=0,epsC=0;
+
+setInterval(()=>{document.getElementById('h-eps').textContent=epsC;epsC=0;},1000);
+
+function colFor(id){return AVCOLS[id.charCodeAt(id.length-1)%AVCOLS.length]}
+function ini(n){return n.slice(0,2).toUpperCase()}
+
+// ── WebSocket ──────────────────────────────────────────────────
+function connect(id){
+  const proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(`${proto}://${location.host}`);
+  setWsStatus('connecting');
+  ws.onopen=()=>{
+    setWsStatus('connected');
+    ws.send(JSON.stringify({type:'player:join',playerId:id,username:document.getElementById('f-u').value.trim(),state:myState,continent:myCont}));
+  };
+  ws.onmessage=({data})=>handleMsg(JSON.parse(data));
+  ws.onclose=()=>{setWsStatus('error');setTimeout(()=>{if(myId)connect(myId);},3000)};
+  ws.onerror=()=>setWsStatus('error');
+}
+
+function handleMsg(msg){
+  switch(msg.type){
+    case 'joined':
+      showProfile(msg.player);
+      if(msg.achievements){myAch=new Set(msg.achievements.map(a=>a.id));renderAch();}
+      break;
+    case 'leaderboard:update':
+      epsC++; redisOps+=3;
+      document.getElementById('h-online').textContent=msg.onlinePlayers??'—';
+      document.getElementById('h-ops').textContent=redisOps.toLocaleString();
+      document.getElementById('last-upd').textContent='Updated '+new Date().toLocaleTimeString();
+      // FIX 1: store the full payload, render current scope
+      lastData={world:msg.world||[],continents:msg.continents||{},states:msg.states||{}};
+      renderCurrentScope();
+      break;
+    case 'score:ack':
+      myScore=msg.newScore||0;
+      document.getElementById('p-sc').textContent=myScore.toLocaleString();
+      updateProgress(myScore);
+      if(msg.ranks)updateRanks(msg.ranks);
+      break;
+    case 'achievement:unlocked':
+      msg.achievements.forEach(a=>{myAch.add(a.id);showToast('Achievement Unlocked',a.label,'New badge!');});
+      renderAch();
+      if(msg.ranks)updateRanks(msg.ranks);
+      break;
+    case 'achievement:announcement':
+      if(msg.player!==document.getElementById('f-u').value.trim())
+        showToast('Achievement',msg.achievements[0]?.label,msg.player+' earned a badge!');
+      break;
+    case 'pong': break;
+  }
+}
+
+// ── Scope switching ────────────────────────────────────────────
+function setScope(scope){
+  currentScope=scope;
+  ['world','continent','state'].forEach(s=>{
+    document.getElementById('tab-'+s).classList.toggle('act',s===scope);
+    document.getElementById('view-'+s).style.display=s===scope?'':'none';
+  });
+  const banner=document.getElementById('scope-banner');
+  if(scope==='world'){
+    banner.className='scope-banner bw';
+    banner.textContent='Global ranking — score ≥ 1 000 to appear';
+  } else if(scope==='continent'){
+    banner.className='scope-banner bc';
+    banner.textContent='Continent ranking — each continent is isolated · score ≥ 750';
+  } else {
+    banner.className='scope-banner bs2';
+    banner.textContent='State ranking — each state is isolated · all scores visible';
+  }
+  renderCurrentScope();
+}
+
+function renderCurrentScope(){
+  if(currentScope==='world')     renderWorld();
+  if(currentScope==='continent') renderContSubLists();
+  if(currentScope==='state')     renderStateSubLists();
+}
+
+// ── WORLD: single ranked list ──────────────────────────────────
+function renderWorld(){
+  const body=document.getElementById('world-body');
+  const entries=lastData.world||[];
+  if(!entries.length){
+    body.innerHTML=myScore<THRESHOLDS.world
+      ?`<div class="empty">Reach <span style="color:var(--gold)">${THRESHOLDS.world.toLocaleString()}</span> pts to unlock World ranking</div>`
+      :'<div class="empty">No players yet</div>';
+    return;
+  }
+  body.innerHTML=entries.map((p,i)=>rowHtml(p,i+1)).join('');
+  entries.forEach(p=>{prevScores[p.id]=p.score;});
+}
+
+// ── FIX 2: CONTINENT sub-lists ─────────────────────────────────
+function renderContSubLists(){
+  const container=document.getElementById('cont-sublists');
+  const continents=lastData.continents||{};
+  const keys=Object.keys(continents).sort();
+
+  if(!keys.length){
+    container.innerHTML='<div class="empty">No continent data yet</div>';
+    return;
+  }
+
+  container.innerHTML=keys.map(cont=>{
+    const entries=continents[cont]||[];
+    const label=CONT_LABEL[cont]||cont;
+    const isMine=cont===myCont;
+    const locked=entries.length===0 && myScore<THRESHOLDS.continent && isMine;
+
+    const rows = entries.length
+      ? entries.map((p,i)=>rowHtml(p,i+1)).join('')
+      : locked
+        ? `<div class="sublist-locked">Reach <span class="needed">${THRESHOLDS.continent} pts</span> to appear in Continent ranking</div>`
+        : '<div class="sublist-locked" style="color:var(--muted)">No qualified players yet</div>';
+
+    return `<div class="sublist-card">
+      <div class="sublist-head">
+        <span class="sublist-name">${label}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${isMine?`<span class="sublist-mine cont">Your continent</span>`:''}
+          <span class="sublist-count">${entries.length} player${entries.length!==1?'s':''}</span>
+        </div>
+      </div>
+      ${entries.length?`<div class="board-hdr"><div>Rank</div><div>Player</div><div style="text-align:right">Score</div><div style="text-align:right">Delta</div></div>`:''}
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// ── FIX 2: STATE sub-lists ─────────────────────────────────────
+function renderStateSubLists(){
+  const container=document.getElementById('state-sublists');
+  const states=lastData.states||{};
+  const keys=Object.keys(states).sort();
+
+  if(!keys.length){
+    container.innerHTML='<div class="empty">No state data yet</div>';
+    return;
+  }
+
+  container.innerHTML=keys.map(state=>{
+    const entries=states[state]||[];
+    const isMine=state===myState;
+
+    const rows = entries.length
+      ? entries.map((p,i)=>rowHtml(p,i+1)).join('')
+      : '<div class="sublist-locked" style="color:var(--muted)">No players yet</div>';
+
+    return `<div class="sublist-card">
+      <div class="sublist-head">
+        <span class="sublist-name">${state}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${isMine?`<span class="sublist-mine state">Your state</span>`:''}
+          <span class="sublist-count">${entries.length} player${entries.length!==1?'s':''}</span>
+        </div>
+      </div>
+      ${entries.length?`<div class="board-hdr"><div>Rank</div><div>Player</div><div style="text-align:right">Score</div><div style="text-align:right">Delta</div></div>`:''}
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// ── Shared row builder ─────────────────────────────────────────
+function rowHtml(p,rank){
+  const cls=rank===1?'g':rank===2?'s':rank===3?'b':'';
+  const isMe=p.id===myId;
+  const prev=prevScores[p.id];
+  const anim=prev!=null?(p.score>prev?'ru':p.score<prev?'rd':''):'';
+  const delta=prev!=null?p.score-prev:0;
+  const [bg,fg]=colFor(p.id);
+  const sym=rank<=3?['','★','✦','◆'][rank]:rank;
+  return `<div class="board-row${isMe?' me':''} ${anim}" onclick="openProfile('${p.id}')">
+    <div class="rn ${cls}">${sym}</div>
+    <div class="pi">
+      <div class="av-sm" style="background:${bg};color:${fg}">${ini(p.username)}</div>
+      <div>
+        <div class="pn">${p.username}${isMe?' <span style="font-size:10px;color:var(--accent)">(you)</span>':''}</div>
+        <div class="pl">${p.state} · ${p.continent}</div>
+      </div>
+    </div>
+    <div class="sv">${p.score.toLocaleString()}</div>
+    <div class="dv ${delta>0?'p':delta<0?'n':''}">${delta>0?'+'+delta.toLocaleString():delta<0?delta.toLocaleString():'—'}</div>
+  </div>`;
+}
+
+// ── Profile ────────────────────────────────────────────────────
+function showProfile(player){
+  document.getElementById('join-card').style.display='none';
+  ['prof-card','score-card','ach-card'].forEach(id=>document.getElementById(id).style.display='');
+  const [bg,fg]=colFor(player.id);
+  const av=document.getElementById('p-av');
+  av.textContent=ini(player.username); av.style.background=bg; av.style.color=fg;
+  document.getElementById('p-nm').textContent=player.username;
+  document.getElementById('p-lc').textContent=player.state+' · '+player.continent;
+  updateProgress(0); renderAch();
+}
+
+function updateProgress(score){
+  const wPct=Math.min(100,Math.round(score/THRESHOLDS.world*100));
+  const cPct=Math.min(100,Math.round(score/THRESHOLDS.continent*100));
+  document.getElementById('pw-bar').style.width=wPct+'%';
+  document.getElementById('pc-bar').style.width=cPct+'%';
+  document.getElementById('pw-val').textContent=score.toLocaleString()+' / '+THRESHOLDS.world.toLocaleString();
+  document.getElementById('pc-val').textContent=score.toLocaleString()+' / '+THRESHOLDS.continent.toLocaleString();
+  const wb=document.getElementById('pw-bar'),wm=document.getElementById('pw-msg');
+  const cb=document.getElementById('pc-bar'),cm=document.getElementById('pc-msg');
+  if(score>=THRESHOLDS.world){wb.classList.add('ok');wm.className='thr-msg unlocked';wm.textContent='World ranking UNLOCKED';}
+  else{wb.classList.remove('ok');wm.className='thr-msg locked';wm.textContent='Need '+(THRESHOLDS.world-score).toLocaleString()+' more pts for World';}
+  if(score>=THRESHOLDS.continent){cb.classList.add('ok');cm.className='thr-msg unlocked';cm.textContent='Continent ranking UNLOCKED';}
+  else{cb.classList.remove('ok');cm.className='thr-msg locked';cm.textContent='Need '+(THRESHOLDS.continent-score).toLocaleString()+' more pts for Continent';}
+}
+
+function updateRanks(r){
+  if(r.world)     document.getElementById('p-rw').textContent='#'+r.world+' world';
+  if(r.continent) document.getElementById('p-rc').textContent='#'+r.continent+' continent';
+  if(r.state)     document.getElementById('p-rs').textContent='#'+r.state+' state';
+}
+
+function renderAch(){
+  document.getElementById('ach-grid').innerHTML=ACHDEFS.map(a=>`<div class="ach-item${myAch.has(a.id)?'':' lk'}">${a.l}</div>`).join('');
+  document.getElementById('ach-cnt').textContent=myAch.size+'/'+ACHDEFS.length;
+}
+
+// ── Player modal ───────────────────────────────────────────────
+async function openProfile(pid){
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('modal-body').innerHTML='<div class="mloading">Loading...</div>';
+  try{
+    const r=await fetch('/api/players/'+pid);
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error);
+    renderModal(d);
+  }catch(e){document.getElementById('modal-body').innerHTML=`<div class="mloading" style="color:var(--red)">${e.message}</div>`;}
+}
+
+function renderModal({player,ranks,achievements,history,progress}){
+  const [bg,fg]=colFor(player.id);
+  const score=Number(player.totalScore||0);
+  const wOk=progress?.world?.unlocked,cOk=progress?.continent?.unlocked;
+  const wPct=progress?.world?.pct||0,cPct=progress?.continent?.pct||0;
+
+  document.getElementById('modal-title').textContent=player.username+"'s Profile";
+  document.getElementById('modal-body').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div class="mav" style="background:${bg};color:${fg}">${ini(player.username)}</div>
+      <div style="font-family:var(--fh);font-size:24px;font-weight:700">${player.username}</div>
+      <div style="font-size:12px;color:var(--muted)">${player.state} · ${player.continent}</div>
+      <div class="mscore">${score.toLocaleString()}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--fm);margin-top:-12px">total score</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+        ${ranks.world?`<span class="rb rw">#${ranks.world} world</span>`:''}
+        ${ranks.continent?`<span class="rb rc">#${ranks.continent} continent</span>`:''}
+        ${ranks.state?`<span class="rb rs">#${ranks.state} state</span>`:''}
+      </div>
+    </div>
+
+    <div>
+      <div class="msec">Ranking access</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="thr-item">
+          <div class="thr-row"><span class="lbl">World (≥ 1 000)</span><span class="val">${score.toLocaleString()} / 1 000</span></div>
+          <div class="thr-bar"><div class="thr-fill ${wOk?'ok':'tw'}" style="width:${wPct}%"></div></div>
+          <div class="thr-msg ${wOk?'unlocked':'locked'}">${wOk?'World UNLOCKED':'Need '+(1000-score)+' more pts'}</div>
+        </div>
+        <div class="thr-item">
+          <div class="thr-row"><span class="lbl">Continent (≥ 750)</span><span class="val">${score.toLocaleString()} / 750</span></div>
+          <div class="thr-bar"><div class="thr-fill ${cOk?'ok':'tc'}" style="width:${cPct}%"></div></div>
+          <div class="thr-msg ${cOk?'unlocked':'locked'}">${cOk?'Continent UNLOCKED':'Need '+(750-score)+' more pts'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="msec">Achievements (${achievements.length}/${ACHDEFS.length})</div>
+      <div class="mach-grid">${ACHDEFS.map(a=>`<div class="mach${achievements.find(x=>x.id===a.id)?'':' lk'}">${a.l}</div>`).join('')}</div>
+    </div>
+
+    <div>
+      <div class="msec">Score history</div>
+      <div class="mhist">${history.length
+        ?history.map(h=>`<div class="hi"><span style="font-size:10px;color:var(--muted);font-family:var(--fm)">${new Date(h.ts).toLocaleTimeString()}</span><span style="color:var(--green);font-family:var(--fm)">+${h.increment.toLocaleString()}</span><span style="font-family:var(--fm)">${h.newScore.toLocaleString()} pts</span></div>`).join('')
+        :'<div style="color:var(--muted);font-size:12px;text-align:center;padding:10px">No history yet</div>'
+      }</div>
+    </div>`;
+}
+
+function closeModalOverlay(e){if(e.target===document.getElementById('modal-overlay'))hideModal();}
+function hideModal(){document.getElementById('modal-overlay').classList.add('hidden');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideModal();});
+
+// ── Helpers ────────────────────────────────────────────────────
+function setWsStatus(s){
+  const dot=document.getElementById('ws-dot'),lbl=document.getElementById('ws-label');
+  const hp=document.getElementById('hpulse'),hs=document.getElementById('hstatus');
+  const m={connected:['Connected','var(--green)'],connecting:['Connecting…','var(--gold)'],error:['Reconnecting…','var(--red)']};
+  const[t,c]=m[s]||['—','var(--muted)'];
+  dot.className='status-dot '+s; lbl.textContent=t; hs.textContent=t;
+  hp.style.background=c; hp.style.boxShadow=`0 0 6px ${c}`;
+}
+
+function sendScore(inc){
+  if(!ws||ws.readyState!==1)return;
+  ws.send(JSON.stringify({type:'score:update',increment:inc}));
+}
+
+function showToast(title,body,sub){
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML=`<div class="tt">${title}</div><div class="tb">${body}</div><div class="ts">${sub}</div>`;
+  c.appendChild(t); setTimeout(()=>t.remove(),4100);
+}
+
+document.getElementById('btn-join').addEventListener('click',()=>{
+  const name=document.getElementById('f-u').value.trim();
+  if(!name){document.getElementById('f-u').focus();return;}
+  myState=document.getElementById('f-s').value;
+  myCont=SC[myState]||'World';
+  myId='p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  connect(myId);
+});
+
+setInterval(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'ping'}));},25000);
+</script>
+</body>
+</html>

@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>APEX — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Space+Mono&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#080b12;--card:#131a28;--border:rgba(255,255,255,0.07);
+  --accent:#00e5ff;--gold:#f0a500;--green:#10b981;--red:#ef4444;--purple:#8b5cf6;
+  --text:#e2e8f0;--muted:#64748b;
+  --fh:'Rajdhani',sans-serif;--fm:'Space Mono',monospace;--fb:'Inter',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0}
+header{position:relative;z-index:10;border-bottom:1px solid var(--border);padding:0 2rem;
+  display:flex;align-items:center;justify-content:space-between;height:60px;
+  background:rgba(8,11,18,.92);backdrop-filter:blur(12px)}
+.logo{font-family:var(--fh);font-size:22px;font-weight:700;letter-spacing:4px;color:var(--accent)}
+.logo em{color:var(--muted);font-style:normal;font-size:12px;letter-spacing:2px;margin-left:8px}
+.nav a{font-size:13px;color:var(--muted);text-decoration:none;font-family:var(--fm);margin-left:20px;transition:color .15s}
+.nav a:hover,.nav a.act{color:var(--accent)}
+.layout{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:2rem;display:flex;flex-direction:column;gap:1.5rem}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.metric-lbl{font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.metric-val{font-family:var(--fh);font-size:30px;font-weight:700;line-height:1}
+.metric-val.g{color:var(--green)} .metric-val.b{color:var(--accent)} .metric-val.a{color:var(--gold)} .metric-val.p{color:var(--purple)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ch{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ct{font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+.cb{padding:16px}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.tbl th{padding:9px 12px;border-bottom:1px solid var(--border);font-family:var(--fm);font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;text-align:left;white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.025)}
+.score-td{font-family:var(--fm);font-weight:700}
+.state-td{font-family:var(--fm);font-size:11px;color:var(--muted)}
+/* ACTION BUTTONS */
+.act-btns{display:flex;gap:5px;justify-content:flex-end}
+.abtn{padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--fm);border:1px solid;transition:all .15s;background:transparent;white-space:nowrap}
+.abtn.edit{border-color:rgba(0,229,255,.4);color:var(--accent)}
+.abtn.edit:hover{background:rgba(0,229,255,.1)}
+.abtn.score{border-color:rgba(240,165,0,.4);color:var(--gold)}
+.abtn.score:hover{background:rgba(240,165,0,.1)}
+.abtn.del{border-color:rgba(239,68,68,.4);color:var(--red)}
+.abtn.del:hover{background:rgba(239,68,68,.1)}
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.overlay.hidden{display:none}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;width:460px;max-width:95vw;animation:mi .22s ease}
+@keyframes mi{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.mh{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mclose{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px}
+.mclose:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.mb{padding:22px;display:flex;flex-direction:column;gap:14px}
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;color:var(--muted);font-family:var(--fm);letter-spacing:.06em;text-transform:uppercase}
+.fg input,.fg select{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--fb);outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.fg select option{background:#1a2035}
+.mfooter{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.mbtn{padding:9px 22px;border-radius:8px;font-family:var(--fh);font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;border:1px solid;transition:all .15s}
+.mbtn.primary{background:var(--accent);color:#000;border-color:var(--accent)}
+.mbtn.primary:hover{opacity:.88}
+.mbtn.danger{background:rgba(239,68,68,.15);color:var(--red);border-color:rgba(239,68,68,.4)}
+.mbtn.danger:hover{background:rgba(239,68,68,.25)}
+.mbtn.cancel{background:transparent;color:var(--muted);border-color:var(--border)}
+.mbtn.cancel:hover{background:rgba(255,255,255,.06);color:var(--text)}
+/* ADD PLAYER FORM */
+.add-form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.add-form .full{grid-column:1/-1}
+/* SCORE MODE TOGGLE */
+.mode-toggle{display:flex;gap:8px}
+.mmode{flex:1;padding:8px;border-radius:7px;font-family:var(--fh);font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s}
+.mmode.act{background:rgba(240,165,0,.15);border-color:rgba(240,165,0,.5);color:var(--gold)}
+/* FEED */
+.feed{max-height:280px;overflow-y:auto}
+.fi{display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid var(--border);font-size:12px;animation:fdin .25s ease}
+@keyframes fdin{from{opacity:0;transform:translateX(-5px)}to{opacity:1;transform:none}}
+.fi:last-child{border-bottom:none}
+.fi-user{font-weight:500;min-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fi-inc{font-family:var(--fm);color:var(--green);min-width:52px;text-align:right}
+.fi-score{font-family:var(--fm);color:var(--muted);min-width:64px;text-align:right}
+.fi-time{font-size:10px;color:var(--muted);margin-left:auto;font-family:var(--fm)}
+/* TOAST */
+.toast-wrap{position:fixed;top:70px;right:20px;z-index:200;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--card);border:1px solid;border-radius:10px;padding:11px 14px;min-width:220px;font-size:13px;animation:ti .3s ease,to .3s ease 2.8s forwards}
+@keyframes ti{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@keyframes to{to{opacity:0;transform:translateX(18px)}}
+.toast.ok{border-color:rgba(16,185,129,.5);color:var(--green)}
+.toast.err{border-color:rgba(239,68,68,.5);color:var(--red)}
+/* SCHEMA CARDS */
+.schema-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:700px){.schema-grid{grid-template-columns:1fr}}
+.schema-box{border-radius:8px;padding:12px}
+.schema-title{font-size:10px;font-family:var(--fm);letter-spacing:.08em;text-transform:uppercase;margin-bottom:7px}
+.schema-keys{font-size:11px;color:var(--muted);font-family:var(--fm);line-height:2}
+.empty{padding:28px;text-align:center;color:var(--muted);font-family:var(--fh);font-size:14px;letter-spacing:2px;text-transform:uppercase}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">APEXRANK <em>ADMIN</em></div>
+  <nav class="nav"><a href="index.html">Game</a><a href="admin.html" class="act">Dashboard</a></nav>
+</header>
+
+<!-- MODALS -->
+<!-- Edit player -->
+<div class="overlay hidden" id="ov-edit">
+  <div class="modal">
+    <div class="mh"><span class="ct" id="edit-title">Edit Player</span><button class="mclose" onclick="closeAll()">✕</button></div>
+    <div class="mb">
+      <div class="fg"><label>Username</label><input id="e-username" placeholder="Username"></div>
+      <div class="fg"><label>State</label>
+        <select id="e-state">
+          <option value="CA">California (CA)</option><option value="TX">Texas (TX)</option>
+          <option value="NY">New York (NY)</option><option value="FL">Florida (FL)</option>
+          <option value="WA">Washington (WA)</option><option value="SP">São Paulo (SP)</option>
+          <option value="RJ">Rio de Janeiro (RJ)</option><option value="MG">Minas Gerais (MG)</option>
+          <option value="BCN">Barcelona (BCN)</option><option value="MAD">Madrid (MAD)</option>
+          <option value="IDF">Paris (IDF)</option><option value="TYO">Tokyo (TYO)</option>
+          <option value="SH">Shanghai (SH)</option>
+        </select>
+      </div>
+      <div class="fg"><label>Continent</label>
+        <select id="e-continent">
+          <option value="NA">North America (NA)</option><option value="SA">South America (SA)</option>
+          <option value="EU">Europe (EU)</option><option value="AS">Asia (AS)</option>
+        </select>
+      </div>
+      <div class="mfooter">
+        <button class="mbtn cancel" onclick="closeAll()">Cancel</button>
+        <button class="mbtn primary" onclick="submitEdit()">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Score modal -->
+<div class="overlay hidden" id="ov-score">
+  <div class="modal">
+    <div class="mh"><span class="ct" id="score-title">Manage Score</span><button class="mclose" onclick="closeAll()">✕</button></div>
+    <div class="mb">
+      <div class="fg"><label>Current score</label><input id="s-current" disabled style="opacity:.5"></div>
+      <div class="fg"><label>Mode</label>
+        <div class="mode-toggle">
+          <button class="mmode act" id="mode-add" onclick="setScoreMode('add')">Add / subtract</button>
+          <button class="mmode"     id="mode-set" onclick="setScoreMode('set')">Set exact value</button>
+        </div>
+      </div>
+      <div class="fg"><label id="score-input-lbl">Points to add (use negative to subtract)</label>
+        <input id="s-value" type="number" placeholder="e.g. 500 or -100">
+      </div>
+      <div class="mfooter">
+        <button class="mbtn cancel" onclick="closeAll()">Cancel</button>
+        <button class="mbtn primary" onclick="submitScore()">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="overlay hidden" id="ov-del">
+  <div class="modal">
+    <div class="mh"><span class="ct" style="color:var(--red)">Delete Player</span><button class="mclose" onclick="closeAll()">✕</button></div>
+    <div class="mb">
+      <p style="font-size:14px;line-height:1.6;color:var(--text)">Are you sure you want to delete <b id="del-name" style="color:var(--accent)"></b>?</p>
+      <p style="font-size:12px;color:var(--red);margin-top:4px">This removes all score history and achievements. Cannot be undone.</p>
+      <div class="mfooter">
+        <button class="mbtn cancel" onclick="closeAll()">Cancel</button>
+        <button class="mbtn danger" onclick="submitDelete()">Delete permanently</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add player -->
+<div class="overlay hidden" id="ov-add">
+  <div class="modal">
+    <div class="mh"><span class="ct">Add Player</span><button class="mclose" onclick="closeAll()">✕</button></div>
+    <div class="mb">
+      <div class="add-form">
+        <div class="fg"><label>ID</label><input id="a-id" placeholder="unique_id_123"></div>
+        <div class="fg"><label>Username</label><input id="a-username" placeholder="Player name"></div>
+        <div class="fg">
+          <label>State</label>
+          <select id="a-state">
+            <option value="CA">California (CA)</option><option value="TX">Texas (TX)</option>
+            <option value="NY">New York (NY)</option><option value="FL">Florida (FL)</option>
+            <option value="WA">Washington (WA)</option><option value="SP">São Paulo (SP)</option>
+            <option value="RJ">Rio de Janeiro (RJ)</option><option value="MG">Minas Gerais (MG)</option>
+            <option value="BCN">Barcelona (BCN)</option><option value="MAD">Madrid (MAD)</option>
+            <option value="IDF">Paris (IDF)</option><option value="TYO">Tokyo (TYO)</option>
+            <option value="SH">Shanghai (SH)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Continent</label>
+          <select id="a-continent">
+            <option value="NA">North America</option><option value="SA">South America</option>
+            <option value="EU">Europe</option><option value="AS">Asia</option>
+          </select>
+        </div>
+        <div class="fg"><label>Initial Score</label><input id="a-score" type="number" value="0" min="0"></div>
+      </div>
+      <div class="mfooter">
+        <button class="mbtn cancel" onclick="closeAll()">Cancel</button>
+        <button class="mbtn primary" onclick="submitAdd()">Create player</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<div class="layout">
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="metric"><div class="metric-lbl">Online now</div><div class="metric-val g" id="m-on">—</div></div>
+    <div class="metric"><div class="metric-lbl">Total players</div><div class="metric-val b" id="m-pl">—</div></div>
+    <div class="metric"><div class="metric-lbl">Total events</div><div class="metric-val a" id="m-ev">—</div></div>
+    <div class="metric"><div class="metric-lbl">Peak online</div><div class="metric-val p" id="m-pk">—</div></div>
+    <div class="metric"><div class="metric-lbl">Uptime</div><div class="metric-val" id="m-up">—</div></div>
+  </div>
+
+  <!-- PLAYER MANAGEMENT TABLE -->
+  <div class="card">
+    <div class="ch">
+      <span class="ct">Player Management</span>
+      <button class="abtn edit" style="font-size:12px;padding:6px 14px" onclick="openAdd()">+ Add player</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:140px">Player</th>
+            <th style="width:80px">State</th>
+            <th style="width:70px">Cont.</th>
+            <th style="width:90px">Score</th>
+            <th style="width:130px">Joined</th>
+            <th style="width:160px;text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="player-tbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CHART + FEED -->
+  <div class="grid2">
+    <div class="card">
+      <div class="ch"><span class="ct">Events / hour</span></div>
+      <div class="cb"><canvas id="chart-h" height="200"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ch">
+        <span class="ct">Live feed</span>
+        <span id="feed-cnt" style="font-size:11px;color:var(--muted);font-family:var(--fm)"></span>
+      </div>
+      <div class="feed" id="feed"></div>
+    </div>
+  </div>
+
+  <!-- SCHEMA -->
+  <div class="card">
+    <div class="ch"><span class="ct">Architecture — dual store</span></div>
+    <div class="cb">
+      <div class="schema-grid">
+        <div class="schema-box" style="background:rgba(0,229,255,.05);border:1px solid rgba(0,229,255,.15)">
+          <div class="schema-title" style="color:var(--accent)">Redis — real-time ranking</div>
+          <div class="schema-keys">leaderboard:world<br>leaderboard:continent:{c}<br>leaderboard:state:{s}<br>online:players<br>player:{id} (cache)</div>
+        </div>
+        <div class="schema-box" style="background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.15)">
+          <div class="schema-title" style="color:var(--purple)">PostgreSQL — persistent data</div>
+          <div class="schema-keys">players (profiles)<br>score_events (history)<br>achievements<br>— indexed by state / continent</div>
+        </div>
+        <div class="schema-box" style="background:rgba(240,165,0,.05);border:1px solid rgba(240,165,0,.15)">
+          <div class="schema-title" style="color:var(--gold)">Sync rules</div>
+          <div class="schema-keys">Create → write both<br>Score update → write both<br>Edit → update both + migrate ZSET<br>Delete → remove both + CASCADE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let hourlyChart = null;
+let currentEditId = null, currentDelId = null, currentScoreId = null;
+let scoreMode = 'add';
+let allPlayers = [];
+
+// ── Stats ──────────────────────────────────────────────────────
+async function fetchStats() {
+  try {
+    const r = await fetch('/api/admin/stats'); const d = await r.json();
+    document.getElementById('m-on').textContent = d.onlineNow ?? '—';
+    document.getElementById('m-ev').textContent = (d.totalEvents||0).toLocaleString();
+    document.getElementById('m-pk').textContent = d.peakOnline ?? '—';
+    if(d.startedAt){
+      const s=Math.floor((Date.now()-d.startedAt)/1000);
+      document.getElementById('m-up').textContent=`${Math.floor(s/3600)}h ${Math.floor((s%3600)/60)}m`;
+    }
+    renderHourly(d.hourly||[]);
+  } catch(e){}
+}
+
+function renderHourly(hourly){
+  const ctx=document.getElementById('chart-h').getContext('2d');
+  const labels=hourly.map(h=>h.hour+':00'), data=hourly.map(h=>h.events);
+  Chart.defaults.color='#64748b'; Chart.defaults.font.family='Space Mono';
+  if(hourlyChart){hourlyChart.data.datasets[0].data=data;hourlyChart.update('none');return;}
+  hourlyChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:'rgba(0,229,255,.18)',borderColor:'rgba(0,229,255,.55)',borderWidth:1,borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{maxRotation:0,font:{size:10}}},
+              y:{grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true,ticks:{font:{size:10}}}}}});
+}
+
+// ── Players table ─────────────────────────────────────────────
+async function fetchPlayers() {
+  try {
+    const r = await fetch('/api/players'); const d = await r.json();
+    allPlayers = d.players || [];
+    document.getElementById('m-pl').textContent = allPlayers.length;
+    renderPlayerTable(allPlayers);
+  } catch(e){ document.getElementById('player-tbody').innerHTML='<tr><td colspan="6" class="empty">Error loading players</td></tr>'; }
+}
+
+function renderPlayerTable(players) {
+  const tb = document.getElementById('player-tbody');
+  if(!players.length){tb.innerHTML='<tr><td colspan="6" class="empty">No players yet</td></tr>';return;}
+  tb.innerHTML = players.map(p => {
+    const joined = p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—';
+    return `<tr>
+      <td style="font-weight:500">${esc(p.username)}</td>
+      <td class="state-td">${esc(p.state)}</td>
+      <td class="state-td">${esc(p.continent)}</td>
+      <td class="score-td">${Number(p.totalScore||0).toLocaleString()}</td>
+      <td class="state-td">${joined}</td>
+      <td>
+        <div class="act-btns">
+          <button class="abtn edit"  onclick="openEdit('${p.id}')">Edit</button>
+          <button class="abtn score" onclick="openScore('${p.id}')">Score</button>
+          <button class="abtn del"   onclick="openDelete('${p.id}','${esc(p.username)}')">Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s){ return String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Feed ──────────────────────────────────────────────────────
+async function fetchFeed() {
+  try {
+    const r=await fetch('/api/admin/feed?count=40'); const d=await r.json();
+    const events=d.events||[];
+    document.getElementById('feed-cnt').textContent=events.length+' events';
+    const feed=document.getElementById('feed');
+    if(!events.length){feed.innerHTML='<div class="empty">No events yet</div>';return;}
+    feed.innerHTML=events.map(e=>{
+      const ago=Math.floor((Date.now()-e.ts)/1000);
+      const t=ago<60?ago+'s ago':Math.floor(ago/60)+'m ago';
+      return `<div class="fi"><span class="fi-user">${esc(e.username||e.playerId)}</span><span style="font-size:10px;color:var(--muted)">${esc(e.state||'')}</span><span class="fi-inc">+${(e.increment||0).toLocaleString()}</span><span class="fi-score">${(e.newScore||0).toLocaleString()}</span><span class="fi-time">${t}</span></div>`;
+    }).join('');
+  } catch(e){}
+}
+
+// ── EDIT PLAYER ───────────────────────────────────────────────
+function openEdit(id) {
+  const p = allPlayers.find(x=>x.id===id); if(!p) return;
+  currentEditId = id;
+  document.getElementById('edit-title').textContent = 'Edit — '+p.username;
+  document.getElementById('e-username').value  = p.username;
+  document.getElementById('e-state').value     = p.state;
+  document.getElementById('e-continent').value = p.continent;
+  document.getElementById('ov-edit').classList.remove('hidden');
+}
+
+async function submitEdit() {
+  const username  = document.getElementById('e-username').value.trim();
+  const state     = document.getElementById('e-state').value;
+  const continent = document.getElementById('e-continent').value;
+  if(!username) return toast('Username required','err');
+  try {
+    const r = await fetch(`/api/players/${currentEditId}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ username, state, continent }),
+    });
+    if(!r.ok) throw new Error((await r.json()).error);
+    toast('Player updated','ok'); closeAll(); await fetchPlayers();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+// ── SCORE MANAGEMENT ──────────────────────────────────────────
+function setScoreMode(mode) {
+  scoreMode = mode;
+  document.getElementById('mode-add').classList.toggle('act', mode==='add');
+  document.getElementById('mode-set').classList.toggle('act', mode==='set');
+  document.getElementById('score-input-lbl').textContent =
+    mode==='add' ? 'Points to add (use negative to subtract)' : 'New exact score value';
+  document.getElementById('s-value').value = '';
+}
+
+function openScore(id) {
+  const p = allPlayers.find(x=>x.id===id); if(!p) return;
+  currentScoreId = id;
+  document.getElementById('score-title').textContent = 'Score — '+p.username;
+  document.getElementById('s-current').value = Number(p.totalScore||0).toLocaleString()+' pts';
+  document.getElementById('s-value').value = '';
+  setScoreMode('add');
+  document.getElementById('ov-score').classList.remove('hidden');
+}
+
+async function submitScore() {
+  const raw = document.getElementById('s-value').value;
+  const value = Number(raw);
+  if(isNaN(value) || raw.trim()==='') return toast('Enter a valid number','err');
+  try {
+    const r = await fetch(`/api/players/${currentScoreId}/score`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ mode: scoreMode, value }),
+    });
+    if(!r.ok) throw new Error((await r.json()).error);
+    const d = await r.json();
+    toast(`Score updated → ${Number(d.totalScore).toLocaleString()} pts`, 'ok');
+    closeAll(); await fetchPlayers();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+// ── DELETE ────────────────────────────────────────────────────
+function openDelete(id, name) {
+  currentDelId = id;
+  document.getElementById('del-name').textContent = name;
+  document.getElementById('ov-del').classList.remove('hidden');
+}
+
+async function submitDelete() {
+  try {
+    const r = await fetch(`/api/players/${currentDelId}`, { method:'DELETE' });
+    if(!r.ok) throw new Error((await r.json()).error);
+    toast('Player deleted','ok'); closeAll(); await fetchPlayers();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+// ── ADD PLAYER ────────────────────────────────────────────────
+function openAdd() {
+  document.getElementById('a-id').value='';
+  document.getElementById('a-username').value='';
+  document.getElementById('a-score').value='0';
+  document.getElementById('ov-add').classList.remove('hidden');
+}
+
+async function submitAdd() {
+  const id        = document.getElementById('a-id').value.trim();
+  const username  = document.getElementById('a-username').value.trim();
+  const state     = document.getElementById('a-state').value;
+  const continent = document.getElementById('a-continent').value;
+  const score     = Number(document.getElementById('a-score').value) || 0;
+  if(!id||!username) return toast('ID and username required','err');
+  try {
+    // Create player
+    const r = await fetch('/api/players', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id, username, state, continent }),
+    });
+    if(!r.ok) throw new Error((await r.json()).error);
+    // Set initial score if > 0
+    if(score > 0) {
+      await fetch(`/api/players/${id}/score`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ mode:'set', value: score }),
+      });
+    }
+    toast('Player created','ok'); closeAll(); await fetchPlayers();
+  } catch(e){ toast(e.message,'err'); }
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function closeAll() {
+  ['ov-edit','ov-score','ov-del','ov-add'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+}
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeAll(); });
+['ov-edit','ov-score','ov-del','ov-add'].forEach(id=>{
+  document.getElementById(id).addEventListener('click', e=>{ if(e.target===e.currentTarget) closeAll(); });
+});
+
+function toast(msg, type='ok') {
+  const c=document.getElementById('toasts');
+  const t=document.createElement('div');
+  t.className='toast '+type; t.textContent=msg;
+  c.appendChild(t); setTimeout(()=>t.remove(),3200);
+}
+
+async function refreshAll(){
+  await Promise.all([fetchStats(), fetchPlayers(), fetchFeed()]);
+}
+
+refreshAll();
+setInterval(refreshAll, 6000);
+</script>
+</body>
+</html>
