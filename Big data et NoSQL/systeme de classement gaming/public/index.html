@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NEXUS ARENA — Live Leaderboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030712;--bg2:#0a0f1e;--bg3:#0f172a;
+  --cyan:#00f5ff;--pink:#ff0080;--pink2:#e91e8c;
+  --gold:#ffd700;--green:#00ff88;--orange:#ff6b00;
+  --text:#e2e8f0;--muted:#64748b;
+  --border:rgba(0,245,255,0.14);
+  --glow:0 0 18px rgba(0,245,255,0.38);
+  --glow-pk:0 0 18px rgba(255,0,128,0.38);
+  --r:7px;
+}
+/* ── WHITE MODE ── */
+body.white-mode{
+  --bg:#f0f4f8;--bg2:#e8edf5;--bg3:#dde4ef;
+  --cyan:#0066cc;--pink:#cc0066;--pink2:#990055;
+  --gold:#b8860b;--green:#007744;--orange:#cc5500;
+  --text:#1a1f2e;--muted:#64748b;
+  --border:rgba(0,100,200,0.18);
+  --glow:0 0 18px rgba(0,100,200,0.28);
+  --glow-pk:0 0 18px rgba(200,0,100,0.28);
+}
+body.white-mode{background:var(--bg);color:var(--text)}
+body.white-mode::before{background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,100,200,.018) 2px,rgba(0,100,200,.018) 4px)}
+body.white-mode::after{background-image:linear-gradient(rgba(0,100,200,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,100,200,.022) 1px,transparent 1px);background-size:60px 60px}
+body.white-mode .header{background:linear-gradient(135deg,rgba(0,100,200,.1),rgba(200,0,100,.07))}
+body.white-mode .modebar{background:rgba(240,244,248,.97)}
+body.white-mode .panel{background:linear-gradient(180deg,rgba(232,237,245,.98),rgba(240,244,248,.99))}
+body.white-mode .cpanel{background:#f5f8fc}
+body.white-mode .lbhead{background:rgba(240,244,248,.97)}
+body.white-mode .fsel,.white-mode .finp,.white-mode .sinp{background:rgba(0,100,200,.06);color:var(--text)}
+body.white-mode .fsel option{background:var(--bg3)}
+body.white-mode .pgbar{background:rgba(240,244,248,.95)}
+body.white-mode .lbtbl thead tr{background:rgba(240,244,248,.98)}
+body.white-mode .lbtbl th,.white-mode .lbtbl td{border-bottom-color:rgba(0,100,200,.08)}
+body.white-mode .lr:hover{background:rgba(0,100,200,.05)}
+body.white-mode .lr.t1{background:linear-gradient(90deg,rgba(184,134,11,.09),transparent)}
+body.white-mode .fi{border-bottom-color:rgba(0,100,200,.08)}
+body.white-mode .feed{background:transparent}
+body.white-mode .tst.sc2{background:rgba(0,119,68,.1)}
+body.white-mode .tst.ac2{background:rgba(184,134,11,.1)}
+body.white-mode .tst.rk2{background:rgba(200,0,100,.1)}
+
+/* theme toggle button */
+.theme-toggle{font-family:'Orbitron';font-size:.55rem;font-weight:700;letter-spacing:1px;padding:5px 11px;border-radius:var(--r);border:1px solid var(--border);color:var(--text);background:rgba(255,255,255,.06);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.theme-toggle:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,245,255,.07)}
+body.white-mode .theme-toggle{background:rgba(0,0,0,.04)}
+body.white-mode .theme-toggle:hover{background:rgba(0,100,200,.07)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,245,255,.012) 2px,rgba(0,245,255,.012) 4px);pointer-events:none;z-index:9999}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,245,255,.028) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.028) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+
+/* ── HEADER ── */
+.header{position:relative;z-index:10;background:linear-gradient(135deg,rgba(0,245,255,.08),rgba(255,0,128,.06));border-bottom:1px solid var(--border);padding:11px 22px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(12px);flex-wrap:wrap;gap:8px}
+.logo{font-family:'Orbitron';font-size:1.35rem;font-weight:900;background:linear-gradient(90deg,var(--cyan),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px}
+.logo-sub{font-family:'Share Tech Mono';font-size:.56rem;color:var(--muted);letter-spacing:4px;margin-top:1px}
+.hstats{display:flex;gap:18px}
+.hs{text-align:center}
+.hs-v{font-family:'Orbitron';font-size:.95rem;font-weight:700;color:var(--cyan)}
+.hs-l{font-size:.55rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.ws-badge{font-family:'Share Tech Mono';font-size:.6rem;padding:4px 10px;border-radius:4px;border:1px solid;display:flex;align-items:center;gap:6px}
+.ws-badge.on{border-color:var(--green);color:var(--green)}.ws-badge.off{border-color:var(--pink);color:var(--pink)}
+.ws-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:0}}
+
+/* ── MODE BAR ── */
+.modebar{position:relative;z-index:10;background:rgba(8,12,26,.97);border-bottom:2px solid var(--border);display:flex;align-items:stretch;backdrop-filter:blur(12px)}
+.mtab{font-family:'Orbitron';font-size:.6rem;font-weight:700;letter-spacing:2px;padding:11px 20px;cursor:pointer;border:none;background:transparent;color:var(--muted);text-transform:uppercase;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.mtab:hover{color:var(--text)}
+.mtab.mc{color:var(--cyan);border-bottom-color:var(--cyan)}
+.mtab.md{color:var(--pink);border-bottom-color:var(--pink)}
+.mbadge{font-size:.5rem;padding:2px 7px;border-radius:10px;font-family:'Share Tech Mono'}
+.bc{background:rgba(0,245,255,.1);color:var(--cyan);border:1px solid rgba(0,245,255,.2)}
+.bd{background:rgba(255,0,128,.1);color:var(--pink);border:1px solid rgba(255,0,128,.2)}
+.msep{width:1px;background:var(--border);margin:8px 4px}
+
+/* ── LAYOUT ── */
+.layout{position:relative;z-index:1;display:grid;grid-template-columns:285px 1fr 285px;min-height:calc(100vh - 107px)}
+
+/* ── PANELS ── */
+.panel{background:linear-gradient(180deg,rgba(10,15,30,.97),rgba(3,7,18,.99));border-right:1px solid var(--border);overflow-y:auto;max-height:calc(100vh - 107px)}
+.panel::-webkit-scrollbar{width:3px}.panel::-webkit-scrollbar-thumb{background:rgba(0,245,255,.3);border-radius:2px}
+.rpanel{border-right:none}.rpanel::-webkit-scrollbar-thumb{background:rgba(255,0,128,.3)}
+
+.pt{font-family:'Orbitron';font-size:.57rem;font-weight:700;letter-spacing:3px;color:var(--cyan);padding:11px 14px 7px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pt.pk{color:var(--pink)}
+
+.ctrl{padding:10px 13px;border-bottom:1px solid rgba(0,245,255,.05)}
+.cl{font-size:.6rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+
+/* buttons */
+.btn{font-family:'Orbitron';font-size:.54rem;font-weight:700;letter-spacing:1px;padding:6px 11px;border-radius:var(--r);border:1px solid;cursor:pointer;transition:all .18s;text-transform:uppercase;white-space:nowrap}
+.bc2{border-color:var(--cyan);color:var(--cyan);background:rgba(0,245,255,.07)}.bc2:hover{background:var(--cyan);color:var(--bg);box-shadow:var(--glow)}
+.bp{border-color:var(--pink);color:var(--pink);background:rgba(255,0,128,.07)}.bp:hover{background:var(--pink);color:#fff;box-shadow:var(--glow-pk)}
+.bg2{border-color:var(--green);color:var(--green);background:rgba(0,255,136,.07)}.bg2:hover{background:var(--green);color:var(--bg)}
+.bo{border-color:var(--orange);color:var(--orange);background:rgba(255,107,0,.07)}.bo:hover{background:var(--orange);color:#fff}
+.bsm{padding:4px 8px;font-size:.5rem}
+
+/* board tabs */
+.btabs{display:flex;flex-wrap:wrap;gap:4px}
+.btab{font-family:'Orbitron';font-size:.5rem;font-weight:700;letter-spacing:1px;padding:4px 8px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .18s;text-transform:uppercase}
+.btab:hover{border-color:var(--cyan);color:var(--cyan)}
+.btab.act{border-color:var(--cyan);color:var(--bg);background:var(--cyan);box-shadow:var(--glow)}
+.dsm .btab.act{border-color:var(--pink);color:#fff;background:var(--pink);box-shadow:var(--glow-pk)}
+
+/* sim */
+.srow{display:flex;gap:6px;align-items:center}
+.sstatus{font-family:'Share Tech Mono';font-size:.57rem;padding:4px 8px;border-radius:4px;text-align:center}
+.sstatus.on{color:var(--green);background:rgba(0,255,136,.07);border:1px solid rgba(0,255,136,.2)}
+.sstatus.off{color:var(--muted);background:rgba(100,116,139,.07);border:1px solid rgba(100,116,139,.18)}
+.spsl{width:100%;accent-color:var(--cyan);margin:4px 0}
+
+/* form */
+.fsel,.finp{font-family:'Share Tech Mono';font-size:.66rem;background:rgba(0,245,255,.04);border:1px solid var(--border);color:var(--text);border-radius:var(--r);padding:5px 8px;width:100%;outline:none}
+.fsel:focus,.finp:focus{border-color:var(--cyan)}
+.fsel option{background:var(--bg3)}
+.dsm .fsel,.dsm .finp{background:rgba(255,0,128,.04);border-color:rgba(255,0,128,.14)}
+.dsm .fsel:focus,.dsm .finp:focus{border-color:var(--pink)}
+.fg{display:flex;flex-direction:column;gap:5px}
+.dbtns{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.db{font-family:'Orbitron';font-size:.47rem;font-weight:700;padding:5px 2px;border-radius:4px;border:1px solid rgba(0,245,255,.18);background:rgba(0,245,255,.04);color:var(--cyan);cursor:pointer;transition:all .14s;text-align:center}
+.db:hover{background:var(--cyan);color:var(--bg)}
+.dsm .db{border-color:rgba(255,0,128,.18);color:var(--pink);background:rgba(255,0,128,.04)}.dsm .db:hover{background:var(--pink);color:#fff}
+
+/* achievements */
+.al{display:flex;flex-direction:column;gap:4px;padding:5px 11px}
+.ai{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:var(--r);border:1px solid rgba(0,245,255,.07);background:rgba(0,245,255,.02)}
+.aico{font-size:1rem}.an{font-size:.68rem;font-weight:700}.adsc{font-size:.54rem;color:var(--muted)}
+
+/* dataset stat boxes */
+.dsgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:7px 11px}
+.dsbox{background:rgba(255,0,128,.04);border:1px solid rgba(255,0,128,.12);border-radius:var(--r);padding:7px 9px}
+.dslbl{font-size:.54rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase}
+.dsval{font-family:'Orbitron';font-size:.9rem;font-weight:700;color:var(--pink);margin-top:2px}
+.gbr{display:flex;flex-direction:column;gap:4px;padding:6px 11px}
+.grow{display:flex;align-items:center;gap:7px;font-size:.65rem}
+.gname{min-width:76px;color:var(--muted)}
+.gtrk{flex:1;height:5px;background:rgba(255,0,128,.1);border-radius:3px;overflow:hidden}
+.gfil{height:100%;background:linear-gradient(90deg,var(--pink),var(--pink2));border-radius:3px;transition:width .7s ease}
+.gcnt{font-family:'Share Tech Mono';font-size:.57rem;color:var(--pink);min-width:28px;text-align:right}
+
+/* ── CENTER PANEL ── */
+.cpanel{border-right:1px solid var(--border);overflow-y:auto;max-height:calc(100vh - 107px);display:flex;flex-direction:column}
+.cpanel::-webkit-scrollbar{width:3px}.cpanel::-webkit-scrollbar-thumb{background:rgba(255,0,128,.3);border-radius:2px}
+
+/* sticky top bar */
+.lbhead{position:sticky;top:0;z-index:5;background:rgba(3,7,18,.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+
+/* search + filter bar */
+.filterbar{display:flex;gap:6px;align-items:center;padding:8px 14px;background:rgba(255,0,128,.03);border-bottom:1px solid rgba(255,0,128,.1)}
+.searchbox{flex:1;display:flex;align-items:center;gap:5px;background:rgba(255,0,128,.06);border:1px solid rgba(255,0,128,.2);border-radius:5px;padding:4px 8px}
+.searchbox:focus-within{border-color:var(--pink);box-shadow:0 0 8px rgba(255,0,128,.15)}
+.sinp{flex:1;font-family:'Share Tech Mono';font-size:.68rem;background:transparent;border:none;color:var(--text);outline:none}
+.sinp::placeholder{color:var(--muted)}
+.filt-sel{font-family:'Share Tech Mono';font-size:.62rem;background:rgba(0,0,0,.4);border:1px solid rgba(255,0,128,.2);color:var(--pink);border-radius:4px;padding:4px 6px;cursor:pointer;outline:none}
+.filt-sel option{background:var(--bg3)}
+.clr-btn{font-family:'Orbitron';font-size:.48rem;font-weight:700;padding:3px 7px;border:1px solid rgba(255,0,128,.3);color:var(--pink);background:transparent;border-radius:4px;cursor:pointer;transition:all .15s}
+.clr-btn:hover{background:var(--pink);color:#fff}
+
+.lbbar{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lbtitle{font-family:'Orbitron';font-size:.8rem;font-weight:900;letter-spacing:2px}
+.lbtitle.ct{color:var(--cyan)}.lbtitle.pk{color:var(--pink)}
+.lbmeta{font-family:'Share Tech Mono';font-size:.57rem;color:var(--muted)}
+.mpill{font-family:'Share Tech Mono';font-size:.5rem;padding:2px 7px;border-radius:10px}
+.mpill.custom{background:rgba(0,245,255,.09);color:var(--cyan);border:1px solid rgba(0,245,255,.18)}
+.mpill.dataset{background:rgba(255,0,128,.09);color:var(--pink);border:1px solid rgba(255,0,128,.18)}
+
+/* pagination */
+.pgbar{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 14px;border-top:1px solid var(--border);background:rgba(3,7,18,.95);flex-wrap:wrap}
+.pginfo{font-family:'Share Tech Mono';font-size:.6rem;color:var(--muted);flex:1;text-align:center}
+.pgbtn{font-family:'Orbitron';font-size:.5rem;font-weight:700;padding:5px 10px;border-radius:4px;border:1px solid rgba(255,0,128,.25);color:var(--pink);background:rgba(255,0,128,.06);cursor:pointer;transition:all .15s}
+.pgbtn:hover{background:var(--pink);color:#fff;box-shadow:var(--glow-pk)}
+.pgbtn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+.pgbtn.act{background:var(--pink);color:#fff;border-color:var(--pink)}
+.pgnum{font-family:'Share Tech Mono';font-size:.58rem;color:var(--muted);padding:0 4px}
+.pgjump{display:flex;align-items:center;gap:5px;font-size:.56rem;color:var(--muted)}
+.pgjump input{font-family:'Share Tech Mono';font-size:.6rem;width:44px;background:rgba(255,0,128,.06);border:1px solid rgba(255,0,128,.2);color:var(--text);border-radius:4px;padding:3px 5px;text-align:center;outline:none}
+
+/* table */
+.lbtbl{width:100%;border-collapse:collapse;flex:1}
+.lbtbl thead tr{position:sticky;top:0;background:rgba(3,7,18,.98);font-family:'Orbitron';font-size:.48rem;letter-spacing:2px;color:var(--muted);text-transform:uppercase}
+.lbtbl th,.lbtbl td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(0,245,255,.04)}
+.lbtbl th{border-bottom:1px solid var(--border)}
+.lbtbl th:last-child,.lbtbl td:last-child{text-align:right}
+
+.lr{transition:background .14s;cursor:pointer;animation:ri .25s ease both}
+.lr:hover{background:rgba(0,245,255,.04)}
+.lr.t1{background:linear-gradient(90deg,rgba(255,215,0,.07),transparent)}
+.lr.t2{background:linear-gradient(90deg,rgba(192,192,192,.05),transparent)}
+.lr.t3{background:linear-gradient(90deg,rgba(205,127,50,.05),transparent)}
+.lr.sel{background:rgba(255,0,128,.09)!important;border-left:2px solid var(--pink)}
+.lr.hl{animation:flash .5s ease}
+@keyframes ri{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+@keyframes flash{0%,100%{background:transparent}40%{background:rgba(0,255,136,.11)}}
+
+.rc{font-family:'Orbitron';font-weight:900;min-width:36px}
+.r1{color:var(--gold);font-size:.88rem}.r2{color:#c0c0c0}.r3{color:#cd7f32}
+.rn{color:var(--muted);font-size:.66rem}
+.pc{display:flex;align-items:center;gap:7px}
+.pav{font-size:1.1rem}
+.pn{font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.ps{font-family:'Share Tech Mono';font-size:.54rem;color:var(--muted)}
+
+/* tier badges */
+.tb{font-family:'Orbitron';font-size:.44rem;font-weight:700;letter-spacing:1px;padding:2px 5px;border-radius:3px;white-space:nowrap}
+.tb-Immortal{background:rgba(255,0,128,.15);color:var(--pink);border:1px solid rgba(255,0,128,.3)}
+.tb-Diamond{background:rgba(0,245,255,.1);color:var(--cyan);border:1px solid rgba(0,245,255,.2)}
+.tb-Platinum{background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3)}
+.tb-Gold{background:rgba(255,215,0,.1);color:var(--gold);border:1px solid rgba(255,215,0,.2)}
+.tb-Silver{background:rgba(192,192,192,.07);color:#cbd5e1;border:1px solid rgba(192,192,192,.15)}
+.tb-Bronze{background:rgba(205,127,50,.1);color:#cd7f32;border:1px solid rgba(205,127,50,.2)}
+.tb-Iron{background:rgba(100,116,139,.09);color:var(--muted);border:1px solid rgba(100,116,139,.2)}
+
+.sc{font-family:'Orbitron';font-weight:700;font-size:.76rem;color:var(--cyan);text-align:right}
+.kd{font-family:'Share Tech Mono';font-size:.6rem;color:var(--muted)}
+.genre-tag{font-size:.53rem;padding:2px 5px;border-radius:3px;background:rgba(255,0,128,.09);color:var(--pink);border:1px solid rgba(255,0,128,.18);font-family:'Share Tech Mono';white-space:nowrap}
+.eH{color:var(--green)}.eM{color:var(--gold)}.eL{color:var(--muted)}
+
+/* no-results */
+.nores{text-align:center;padding:40px 20px;color:var(--muted);font-family:'Share Tech Mono';font-size:.72rem}
+.nores-icon{font-size:2rem;margin-bottom:8px}
+
+/* ── LOADING ── */
+.ld{text-align:center;padding:32px;color:var(--muted);font-family:'Share Tech Mono';font-size:.7rem}
+.ld::after{content:'...';animation:dt 1s infinite}
+@keyframes dt{0%{content:'.'}33%{content:'..'}66%{content:'...'}}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--pink);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;margin-right:6px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── RIGHT PANEL ── */
+.feed{display:flex;flex-direction:column}
+.fi{padding:8px 12px;border-bottom:1px solid rgba(0,245,255,.05);animation:si .28s ease both;font-size:.68rem}
+@keyframes si{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.fsc{border-left:2px solid var(--green)}.fac{border-left:2px solid var(--gold);background:rgba(255,215,0,.03)}.frk{border-left:2px solid var(--pink)}
+.ft{font-family:'Share Tech Mono';font-size:.53rem;color:var(--muted)}.ftx{color:var(--text);line-height:1.35;margin-top:1px}.ftx b{color:var(--cyan)}
+.gn2{color:var(--green);font-family:'Orbitron';font-size:.6rem;font-weight:700}
+.fe2{padding:16px;text-align:center;color:var(--muted);font-family:'Share Tech Mono';font-size:.68rem}
+
+.nr{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;font-size:.68rem;border-bottom:1px solid rgba(0,245,255,.04)}
+.nr.tgt{background:rgba(255,0,128,.08);border-left:2px solid var(--pink)}
+.nrk{font-family:'Orbitron';font-size:.56rem;font-weight:700;color:var(--muted);min-width:26px}
+.nnm{font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nsc{font-family:'Orbitron';font-size:.6rem;color:var(--cyan)}
+
+/* toasts */
+.tca{position:fixed;top:70px;right:14px;z-index:2000;display:flex;flex-direction:column;gap:5px}
+.tst{padding:8px 13px;border-radius:var(--r);font-size:.67rem;border:1px solid;min-width:195px;max-width:265px;animation:ti .28s ease;backdrop-filter:blur(10px)}
+@keyframes ti{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+.tst.sc2{border-color:rgba(0,255,136,.38);background:rgba(0,255,136,.09);color:var(--green)}
+.tst.ac2{border-color:rgba(255,215,0,.38);background:rgba(255,215,0,.09);color:var(--gold)}
+.tst.rk2{border-color:rgba(255,0,128,.38);background:rgba(255,0,128,.09);color:var(--pink)}
+.ttl{font-family:'Orbitron';font-size:.56rem;font-weight:700;letter-spacing:2px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div>
+    <div class="logo">NEXUS ARENA</div>
+    <div class="logo-sub">LIVE LEADERBOARD · PROJET 08 · ENSA BENI MELLAL</div>
+  </div>
+  <div class="hstats">
+    <div class="hs"><div class="hs-v" id="hp">—</div><div class="hs-l">Players</div></div>
+    <div class="hs"><div class="hs-v" id="ho">—</div><div class="hs-l">Online</div></div>
+    <div class="hs"><div class="hs-v" id="ht">—</div><div class="hs-l">Top Score</div></div>
+    <div class="hs"><div class="hs-v" id="hev">0</div><div class="hs-l">Events</div></div>
+  </div>
+  <div id="wss" class="ws-badge off"><div class="ws-dot"></div><span>CONNECTING</span></div>
+  <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()">🌙 DARK</button>
+</header>
+
+<!-- MODE BAR -->
+<div class="modebar">
+  <button class="mtab mc" id="tc" onclick="switchMode('custom')">
+    🎮 Custom Arena <span class="mbadge bc">30</span>
+  </button>
+  <div class="msep"></div>
+  <button class="mtab" id="td" onclick="switchMode('dataset')">
+    📊 Real Dataset <span class="mbadge bd">4 999</span>
+  </button>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout" id="layout">
+
+  <!-- ── LEFT ── -->
+  <aside class="panel" id="lp">
+
+    <div class="pt">📊 Leaderboards</div>
+    <div class="ctrl">
+      <div class="cl">Select Board</div>
+      <div class="btabs" id="btabs">
+        <button class="btab act" onclick="switchBoard('global',event)">🌍 Global</button>
+        <button class="btab" onclick="switchBoard('daily',event)">📅 Daily</button>
+        <button class="btab" onclick="switchBoard('weekly',event)">📆 Weekly</button>
+        <button class="btab" onclick="switchBoard('ranked',event)">🏅 Ranked</button>
+        <button class="btab" onclick="switchBoard('casual',event)">🎮 Casual</button>
+      </div>
+    </div>
+
+    <div class="pt">🤖 Auto-Simulation</div>
+    <div class="ctrl">
+      <div id="ssbadge" class="sstatus off" style="margin-bottom:6px">⏹ STOPPED</div>
+      <div class="srow" style="margin-bottom:7px">
+        <button class="btn bg2" onclick="startSim()">▶ START</button>
+        <button class="btn bp" onclick="stopSim()">⏹ STOP</button>
+      </div>
+      <div class="cl">Speed: <span id="spl">3000ms</span></div>
+      <input type="range" class="spsl" id="spslider" min="500" max="8000" step="500" value="3000" oninput="updSpeed(this.value)"/>
+      <div style="display:flex;justify-content:space-between;font-size:.48rem;color:var(--muted)"><span>Fast 0.5s</span><span>Slow 8s</span></div>
+    </div>
+
+    <div class="pt">✏️ Manual Update</div>
+    <div class="ctrl">
+      <div class="fg">
+        <div class="cl">Player</div>
+        <select class="fsel" id="mp"></select>
+        <div class="cl" style="margin-top:4px">Board</div>
+        <select class="fsel" id="mb">
+          <option value="global">Global</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="ranked">Ranked</option>
+          <option value="casual">Casual</option>
+        </select>
+        <div class="cl" style="margin-top:5px">Quick Add</div>
+        <div class="dbtns">
+          <button class="db" onclick="qAdd(100)">+100</button>
+          <button class="db" onclick="qAdd(500)">+500</button>
+          <button class="db" onclick="qAdd(1000)">+1K</button>
+          <button class="db" onclick="qAdd(2500)">+2.5K</button>
+          <button class="db" onclick="qAdd(5000)">+5K</button>
+          <button class="db" onclick="qAdd(10000)">+10K</button>
+        </div>
+        <div class="cl" style="margin-top:5px">Custom Add</div>
+        <div class="srow">
+          <input class="finp" type="number" id="cdelta" placeholder="e.g. 750" style="flex:1"/>
+          <button class="btn bc2 bsm" onclick="addCustom()">ADD</button>
+        </div>
+        <div class="cl" style="margin-top:4px">Set Absolute Score</div>
+        <div class="srow">
+          <input class="finp" type="number" id="setscore" placeholder="e.g. 50000" style="flex:1"/>
+          <button class="btn bo bsm" onclick="setAbs()">SET</button>
+        </div>
+      </div>
+    </div>
+    <div class="ctrl">
+      <button class="btn bp" style="width:100%" onclick="resetData()">🔄 Reset to Original Data</button>
+    </div>
+
+    <div id="lbottom"></div>
+  </aside>
+
+  <!-- ── CENTER ── -->
+  <main class="cpanel" id="cp">
+    <div class="lbhead">
+
+      <!-- filter bar (dataset only) -->
+      <div class="filterbar" id="filterbar" style="display:none">
+        <div class="searchbox">
+          <span style="color:var(--muted);font-size:.9rem">🔍</span>
+          <input class="sinp" id="si" placeholder="Search username, genre, tier, engagement..." oninput="debounceSearch()"/>
+          <button class="clr-btn" onclick="clearSearch()">✕</button>
+        </div>
+        <select class="filt-sel" id="gf" onchange="applyFilters()">
+          <option value="">All Genres</option>
+          <option value="Action">⚔️ Action</option>
+          <option value="RPG">🧙 RPG</option>
+          <option value="Sports">⚽ Sports</option>
+          <option value="Strategy">♟️ Strategy</option>
+          <option value="Simulation">🎮 Simulation</option>
+        </select>
+        <select class="filt-sel" id="tf" onchange="applyFilters()">
+          <option value="">All Tiers</option>
+          <option value="Immortal">Immortal</option>
+          <option value="Diamond">Diamond</option>
+          <option value="Platinum">Platinum</option>
+          <option value="Gold">Gold</option>
+          <option value="Silver">Silver</option>
+          <option value="Bronze">Bronze</option>
+          <option value="Iron">Iron</option>
+        </select>
+        <select class="filt-sel" id="ef" onchange="applyFilters()">
+          <option value="">All Engagement</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+
+      <div class="lbbar">
+        <div>
+          <div class="lbtitle ct" id="lbt">🌍 GLOBAL RANKING</div>
+          <div class="lbmeta" id="lbm"></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="mpill" class="mpill custom">CUSTOM</span>
+          <button class="btn bc2 bsm" onclick="loadPage(curPage)">↺ Refresh</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table container -->
+    <div id="tblwrap" style="flex:1;overflow:auto"></div>
+
+    <!-- Pagination bar (bottom) -->
+    <div class="pgbar" id="pgbar" style="display:none">
+      <button class="pgbtn" id="pg-first" onclick="loadPage(0)">« First</button>
+      <button class="pgbtn" id="pg-prev"  onclick="loadPage(curPage-1)">‹ Prev</button>
+      <div id="pg-nums" style="display:flex;gap:3px;align-items:center"></div>
+      <button class="pgbtn" id="pg-next"  onclick="loadPage(curPage+1)">Next ›</button>
+      <button class="pgbtn" id="pg-last"  onclick="loadPage(totalPages-1)">Last »</button>
+      <div class="pgjump">
+        <span>Go:</span>
+        <input type="number" id="pg-jump" min="1" placeholder="p" onkeydown="if(event.key==='Enter')jumpPage()"/>
+        <button class="pgbtn" onclick="jumpPage()">→</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── RIGHT ── -->
+  <aside class="panel rpanel">
+    <div class="pt">⚡ Live Events <span id="ec" style="color:var(--muted);font-size:.5rem">0</span></div>
+    <div id="feed" class="feed"><div class="fe2">Waiting for events...</div></div>
+    <div class="pt" style="margin-top:4px">👥 Neighborhood View</div>
+    <div style="padding:5px 11px;font-size:.58rem;color:var(--muted)">Click any player row to see surrounding ranks</div>
+    <div id="nb"></div>
+  </aside>
+
+</div><!-- .layout -->
+
+<div class="tca" id="toasts"></div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+let mode='custom', board='global', simOn=false, simSpd=3000;
+let selId=null, evCnt=0, ws;
+let curPage=0, totalPages=1, totalRows=0, pageSize=100;
+let searchTimer=null, searchQuery='', filterGenre='', filterTier='', filterEng='';
+
+// ── WEBSOCKET ────────────────────────────────────────────────────────────────
+function connectWS(){
+  ws=new WebSocket('ws://'+location.host);
+  ws.onopen=()=>setWS(true);
+  ws.onclose=()=>{setWS(false);setTimeout(connectWS,2000)};
+  ws.onmessage=(e)=>handleWS(JSON.parse(e.data));
+}
+function setWS(ok){
+  const el=document.getElementById('wss');
+  el.className='ws-badge '+(ok?'on':'off');
+  el.innerHTML=`<div class="ws-dot"></div><span>${ok?'LIVE':'OFFLINE'}</span>`;
+}
+// ── SCORE CACHE — in-memory copy of current rendered rows ─────────────────
+let lbCache = [];
+let reloadTimer = null;
+const RELOAD_DEBOUNCE = 1500;
+
+function handleWS({type,payload}){
+  if(type==='ONLINE_COUNT') document.getElementById('ho').textContent=payload.count;
+
+  if(type==='SCORE_UPDATE'){
+    // React if the event matches active mode AND active board
+    if(payload.mode===mode && payload.board===board){
+      // 1. Update score in in-memory cache immediately
+      const cached = lbCache.find(p => p.id === payload.playerId);
+      if(cached){
+        cached.score = payload.newScore;
+        // Re-sort by score descending and recompute ranks
+        lbCache.sort((a,b) => b.score - a.score);
+        lbCache.forEach((p,i) => { p.rank = i+1; });
+        // 2. Re-render table from cache — instant, no server round-trip
+        renderTable(lbCache, lbCache.length);
+      }
+      // 3. Flash the updated row
+      const row = document.getElementById('row-'+payload.playerId);
+      if(row){ row.classList.remove('hl'); void row.offsetWidth; row.classList.add('hl'); }
+      // 4. Debounced full server reload for eventual consistency
+      clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => loadPage(curPage, true), RELOAD_DEBOUNCE);
+    }
+
+    const sg = payload.delta>0?'+':'';
+    const ds = payload.delta!=null?`<span class="gn2">${sg}${N(payload.delta)}</span>`:'';
+    addFeed('fsc',
+      `<b>${payload.avatar} ${payload.username}</b> ${ds} &rarr; <b style="color:var(--cyan)">${N(payload.newScore)}</b>`,
+      `#${payload.newRank} [${payload.board}] ${payload.source==='auto'?'auto':'manual'} ${payload.mode==='dataset'?'[dataset]':'[custom]'}`
+    );
+    toast('sc2',`${payload.avatar} ${payload.username}`,`${sg}${N(payload.delta||0)} pts`);
+    updStats();
+  }
+  if(type==='ACHIEVEMENT_UNLOCKED'){
+    const a=payload.achievement;
+    addFeed('fac',`${a.icon} <b>${payload.avatar} ${payload.username}</b> unlocked <span style="color:var(--gold)">"${a.name}"</span>`,a.desc);
+    toast('ac2',`${a.icon} ${a.name}`,payload.username);
+  }
+  if(type==='RANK_CHANGE'){
+    const{avatar,username,oldRank,newRank}=payload;
+    if(Math.abs(oldRank-newRank)>=2)
+      addFeed('frk',`${newRank<oldRank?'&#9650;':'&#9660;'} <b>${avatar} ${username}</b> #${oldRank} &rarr; <b>#${newRank}</b>`,'');
+  }
+  if(type==='SIM_STATUS'){simOn=payload.isRunning; updSimUI();}
+}
+
+// ── MODE / BOARD ─────────────────────────────────────────────────────────────
+function switchMode(m){
+  mode=m; selId=null; curPage=0; searchQuery=''; filterGenre=''; filterTier=''; filterEng='';
+  document.getElementById('tc').className='mtab'+(m==='custom'?' mc':'');
+  document.getElementById('td').className='mtab'+(m==='dataset'?' md':'');
+  const pill=document.getElementById('mpill');
+  pill.className='mpill '+m; pill.textContent=m==='custom'?'CUSTOM':'DATASET';
+  document.getElementById('lbt').className='lbtitle '+(m==='dataset'?'pk':'ct');
+  document.getElementById('btabs').className='btabs'+(m==='dataset'?' dsm':'');
+  document.getElementById('lp').className='panel'+(m==='dataset'?' dsm':'');
+  document.getElementById('filterbar').style.display=m==='dataset'?'flex':'none';
+  document.getElementById('pgbar').style.display=m==='dataset'?'flex':'none';
+  if(m==='dataset'){
+    document.getElementById('si').value='';
+    document.getElementById('gf').value='';
+    document.getElementById('tf').value='';
+    document.getElementById('ef').value='';
+    pageSize=100;
+  }
+  loadPage(0); loadPicker(); updStats(); renderBottom();
+  document.getElementById('nb').innerHTML='';
+}
+
+function switchBoard(b,ev){
+  board=b; curPage=0;
+  document.querySelectorAll('.btab').forEach(t=>t.classList.remove('act'));
+  if(ev) ev.target.classList.add('act');
+  loadPage(0);
+}
+
+// ── LOAD PAGE ────────────────────────────────────────────────────────────────
+const TTLS={global:'🌍 GLOBAL RANKING',daily:'📅 DAILY RANKING',weekly:'📆 WEEKLY RANKING',ranked:'🏅 RANKED MODE',casual:'🎮 CASUAL MODE'};
+const ICONS={Strategy:'♟️',Sports:'⚽',Action:'⚔️',RPG:'🧙',Simulation:'🎮'};
+
+async function loadPage(page=0, silent=false){
+  curPage = Math.max(0, page);
+  if(!silent){
+    document.getElementById('tblwrap').innerHTML='<div class="ld">Loading</div>';
+  }
+  document.getElementById('lbt').textContent = TTLS[board]||'RANKING';
+
+  try{
+    let data, total;
+
+    if(mode==='custom'){
+      const r = await fetch(`/api/leaderboard/${board}?mode=custom&limit=30`);
+      const j = await r.json();
+      data=j.data; total=data.length;
+      document.getElementById('pgbar').style.display='none';
+    } else {
+      const q=searchQuery||'';
+      let qs=`/api/search?mode=dataset&board=${board}&limit=${pageSize}&page=${curPage}`;
+      if(q)           qs+=`&q=${encodeURIComponent(q)}`;
+      if(filterGenre) qs+=`&genre=${encodeURIComponent(filterGenre)}`;
+      if(filterTier)  qs+=`&tier=${encodeURIComponent(filterTier)}`;
+      if(filterEng)   qs+=`&engagement=${encodeURIComponent(filterEng)}`;
+      const r = await fetch(qs);
+      const j = await r.json();
+      data=j.data; total=j.total;
+      totalRows=total;
+      totalPages=Math.ceil(total/pageSize)||1;
+      document.getElementById('pgbar').style.display='flex';
+      updatePagination();
+    }
+
+    // Store in cache so WS updates can modify it in-place
+    lbCache = data.map(p => ({...p}));
+    renderTable(lbCache, total);
+  }catch(e){
+    if(!silent) document.getElementById('tblwrap').innerHTML='<div class="ld">Error loading data</div>';
+    console.error(e);
+  }
+}
+function renderTable(data, total){
+  const isDS = mode==='dataset';
+  const showing = curPage*pageSize;
+
+  // Meta info
+  let metaTxt='';
+  if(isDS){
+    const s2=showing+1, e2=Math.min(showing+data.length,total);
+    metaTxt=`Showing ${N(s2)}–${N(e2)} of ${N(total)} players`;
+    if(searchQuery||filterGenre||filterTier||filterEng) metaTxt+=' (filtered)';
+  } else {
+    metaTxt=`${data.length} players`;
+  }
+  document.getElementById('lbm').textContent=metaTxt;
+
+  if(!data.length){
+    document.getElementById('tblwrap').innerHTML=
+      `<div class="nores"><div class="nores-icon">&#128269;</div>No players found<br><small>Try a different search or filter</small></div>`;
+    return;
+  }
+
+  const ri=['&#127947;','&#129352;','&#129353;'];
+  const rows = data.map((p) => {
+    const sel     = selId===p.id ? 'sel' : '';
+    const topCls  = p.rank===1?'t1':p.rank===2?'t2':p.rank===3?'t3':'';
+    const sub     = isDS
+      ? `${ICONS[p.genre]||''}${p.genre||'—'} · Lvl ${p.player_level||'—'} · ${p.gender||'?'}`
+      : `${p.country} · K/D ${parseFloat(p.kd_ratio||0).toFixed(2)}`;
+
+    const rankDisp = p.rank<=3
+      ? `<span class="r${p.rank}">${ri[p.rank-1]}</span>`
+      : `<span class="rn">#${N(p.rank)}</span>`;
+
+    const midCols = isDS
+      ? `<td><span class="genre-tag">${ICONS[p.genre]||''}${p.genre||'—'}</span></td>
+         <td class="kd"><span class="e${p.engagement}">${p.engagement||'—'}</span></td>
+         <td class="kd">${p.player_level||'—'}</td>
+         <td class="kd">${p.sessions_per_week||'—'}/wk</td>`
+      : `<td class="kd">${parseFloat(p.kd_ratio||0).toFixed(2)}</td>
+         <td class="kd">${p.accuracy||0}%</td>
+         <td class="kd">${p.wins||0}W</td>`;
+
+    return `<tr class="lr ${topCls} ${sel}" id="row-${p.id}"
+              data-id="${p.id}" data-score="${p.score}" data-rank="${p.rank}"
+              onclick="selPlayer('${p.id}')">
+      <td class="rc">${rankDisp}</td>
+      <td><div class="pc">
+        <span class="pav">${p.avatar}</span>
+        <div><div class="pn">${p.username}</div><div class="ps">${sub}</div></div>
+      </div></td>
+      <td><span class="tb tb-${p.tier}">${p.tier||'—'}</span></td>
+      ${midCols}
+      <td class="sc" id="score-${p.id}">${N(p.score)}</td>
+    </tr>`;
+  }).join('');
+
+  const isDS2 = mode==='dataset';
+  const hdr = isDS2
+    ? `<th>#</th><th>Player</th><th>Tier</th><th>Genre</th><th>Engagement</th><th>Level</th><th>Sessions</th><th>Score</th>`
+    : `<th>#</th><th>Player</th><th>Tier</th><th>K/D</th><th>Acc</th><th>Wins</th><th>Score</th>`;
+
+  document.getElementById('tblwrap').innerHTML=
+    `<table class="lbtbl"><thead><tr>${hdr}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+// ── PAGINATION UI ────────────────────────────────────────────────────────────
+function updatePagination(){
+  const nums=document.getElementById('pg-nums');
+  document.getElementById('pg-first').disabled=curPage===0;
+  document.getElementById('pg-prev').disabled=curPage===0;
+  document.getElementById('pg-next').disabled=curPage>=totalPages-1;
+  document.getElementById('pg-last').disabled=curPage>=totalPages-1;
+  document.getElementById('pg-jump').max=totalPages;
+
+  // Show page buttons: current ±2
+  let pages=[];
+  const w=2;
+  for(let p=Math.max(0,curPage-w);p<=Math.min(totalPages-1,curPage+w);p++) pages.push(p);
+  if(pages[0]>0) pages=[0,'…',...pages];
+  if(pages[pages.length-1]<totalPages-1) pages=[...pages,'…',totalPages-1];
+
+  nums.innerHTML=pages.map(p=>{
+    if(p==='…') return `<span class="pgnum">…</span>`;
+    return `<button class="pgbtn${p===curPage?' act':''}" onclick="loadPage(${p})">${p+1}</button>`;
+  }).join('');
+
+  // Page info
+  document.getElementById('lbm').textContent=
+    `Page ${curPage+1}/${totalPages} · ${N(curPage*pageSize+1)}–${N(Math.min((curPage+1)*pageSize,totalRows))} of ${N(totalRows)} players`
+    +(searchQuery||filterGenre||filterTier||filterEng?' (filtered)':'');
+}
+
+function jumpPage(){
+  const v=parseInt(document.getElementById('pg-jump').value)-1;
+  if(!isNaN(v)&&v>=0&&v<totalPages) loadPage(v);
+}
+
+// ── SEARCH + FILTERS ─────────────────────────────────────────────────────────
+function debounceSearch(){
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>{
+    searchQuery=document.getElementById('si').value.trim();
+    curPage=0; loadPage(0);
+  },350);
+}
+
+function applyFilters(){
+  filterGenre=document.getElementById('gf').value;
+  filterTier =document.getElementById('tf').value;
+  filterEng  =document.getElementById('ef').value;
+  curPage=0; loadPage(0);
+}
+
+function clearSearch(){
+  document.getElementById('si').value='';
+  searchQuery=''; filterGenre=''; filterTier=''; filterEng='';
+  document.getElementById('gf').value='';
+  document.getElementById('tf').value='';
+  document.getElementById('ef').value='';
+  curPage=0; loadPage(0);
+}
+
+// ── PLAYER SELECT / NEIGHBORS ────────────────────────────────────────────────
+async function selPlayer(id){
+  selId=id;
+  document.querySelectorAll('.lr').forEach(r=>r.classList.remove('sel'));
+  document.getElementById('row-'+id)?.classList.add('sel');
+  document.getElementById('mp').value=id;
+  loadNB(id);
+}
+
+async function loadNB(id){
+  try{
+    const r=await fetch(`/api/neighbors/${id}?board=${board}&mode=${mode}&radius=4`);
+    const{data}=await r.json();
+    const html=data.map(n=>`<div class="nr ${n.isTarget?'tgt':''}">
+      <span class="nrk">#${N(n.rank)}</span>
+      <span class="nnm">${n.avatar} ${n.username}${n.isTarget?' ◀':''}</span>
+      <span class="nsc">${N(n.score)}</span>
+    </div>`).join('');
+    document.getElementById('nb').innerHTML=html||'<div class="fe2">No data</div>';
+  }catch(e){}
+}
+
+// ── MANUAL SCORE ─────────────────────────────────────────────────────────────
+async function qAdd(delta){
+  const id=document.getElementById('mp').value;
+  if(!id)return alert('Select a player first.');
+  await postAdd(id,delta);
+}
+async function addCustom(){
+  const id=document.getElementById('mp').value;
+  const d=parseInt(document.getElementById('cdelta').value);
+  if(!id||isNaN(d))return alert('Select player and enter a number.');
+  await postAdd(id,d);
+  document.getElementById('cdelta').value='';
+}
+async function setAbs(){
+  const id=document.getElementById('mp').value;
+  const s=parseInt(document.getElementById('setscore').value);
+  if(!id||isNaN(s))return alert('Select player and enter a score.');
+  const brd2=document.getElementById('mb').value;
+  const r=await fetch('/api/score/set',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({playerId:id,score:s,board:brd2,mode})});
+  const res=await r.json();
+  if(res.ok){
+    toast('sc2','Score Set',N(s)+' pts');
+    if(brd2===board){
+      const cached=lbCache.find(p=>p.id===id);
+      if(cached){
+        cached.score=s;
+        lbCache.sort((a,b)=>b.score-a.score);
+        lbCache.forEach((p,i)=>{p.rank=i+1;});
+        renderTable(lbCache, lbCache.length);
+        const row=document.getElementById('row-'+id);
+        if(row){row.classList.remove('hl');void row.offsetWidth;row.classList.add('hl');}
+      } else { loadPage(curPage); }
+    }
+  }
+  document.getElementById('setscore').value='';
+}
+async function postAdd(pid,delta){
+  const brd=document.getElementById('mb').value;
+  const r=await fetch('/api/score/add',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({playerId:pid,delta,board:brd,mode})});
+  const res=await r.json();
+  if(res.ok){
+    // If the updated board is the one currently shown, update cache & re-render immediately
+    if(brd===board){
+      const cached=lbCache.find(p=>p.id===pid);
+      if(cached){
+        cached.score=res.newScore;
+        lbCache.sort((a,b)=>b.score-a.score);
+        lbCache.forEach((p,i)=>{p.rank=i+1;});
+        renderTable(lbCache, lbCache.length);
+        const row=document.getElementById('row-'+pid);
+        if(row){row.classList.remove('hl');void row.offsetWidth;row.classList.add('hl');}
+      } else {
+        // Player not in current view, do a full reload
+        loadPage(curPage);
+      }
+    }
+    if(res.newAchievements?.length) res.newAchievements.forEach(a=>toast('ac2',`${a.icon} ${a.name}`,a.desc));
+  }
+}
+
+// ── SIMULATION ───────────────────────────────────────────────────────────────
+async function startSim(){
+  await fetch('/api/simulation/start',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({speed:simSpd,mode,board})});
+}
+async function stopSim(){ await fetch('/api/simulation/stop',{method:'POST'}); }
+function updSpeed(v){ simSpd=parseInt(v); document.getElementById('spl').textContent=simSpd+'ms'; }
+function updSimUI(){
+  const b=document.getElementById('ssbadge');
+  b.className='sstatus '+(simOn?'on':'off');
+  b.textContent=simOn?'▶ RUNNING':'⏹ STOPPED';
+}
+
+// ── FEED ─────────────────────────────────────────────────────────────────────
+function addFeed(cls,text,sub){
+  const feed=document.getElementById('feed');
+  feed.querySelector('.fe2')?.remove();
+  const div=document.createElement('div');
+  div.className='fi '+cls;
+  div.innerHTML=`<div class="ft">${new Date().toLocaleTimeString()}</div><div class="ftx">${text}</div>${sub?`<div class="ft">${sub}</div>`:''}`;
+  feed.insertBefore(div,feed.firstChild);
+  evCnt++;
+  document.getElementById('ec').textContent=evCnt;
+  document.getElementById('hev').textContent=evCnt;
+  while(feed.children.length>50)feed.removeChild(feed.lastChild);
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+function toast(type,title,body){
+  const el=document.createElement('div');
+  el.className='tst '+type;
+  el.innerHTML=`<div class="ttl">${title}</div><div style="margin-top:2px;font-size:.6rem">${body}</div>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+// ── HEADER STATS ─────────────────────────────────────────────────────────────
+async function updStats(){
+  try{
+    const r=await fetch(`/api/stats?mode=${mode}`);
+    const{live,simulation}=await r.json();
+    document.getElementById('hp').textContent=N(live.totalPlayers||0);
+    document.getElementById('ht').textContent=live.topPlayer?.score?N(live.topPlayer.score):'—';
+    simOn=simulation.isRunning; updSimUI();
+  }catch(e){}
+}
+
+// ── PLAYER PICKER ─────────────────────────────────────────────────────────────
+async function loadPicker(){
+  try{
+    const lim=mode==='dataset'?5000:30;
+    const r=await fetch(`/api/players?mode=${mode}&limit=${lim}`);
+    const{data}=await r.json();
+    document.getElementById('mp').innerHTML=
+      data.map(p=>`<option value="${p.id}">${p.avatar} ${p.username} (${N(p.score)})</option>`).join('');
+  }catch(e){}
+}
+
+// ── LEFT BOTTOM (achievements / dataset analytics) ────────────────────────────
+async function renderBottom(){
+  const el=document.getElementById('lbottom');
+  if(mode==='custom'){
+    const r=await fetch('/api/achievements');
+    const{data}=await r.json();
+    el.innerHTML=`<div class="pt">🏆 Achievements (${data.length})</div>
+      <div class="al">${data.map(a=>`<div class="ai"><span class="aico">${a.icon}</span><div><div class="an">${a.name}</div><div class="adsc">${a.desc}</div></div></div>`).join('')}</div>`;
+  }else{
+    el.innerHTML=`<div class="pt pk">📊 Dataset Analytics</div><div class="ld">Loading</div>`;
+    try{
+      const r=await fetch('/api/dataset/stats');
+      const{data}=await r.json();
+      const tot=Object.values(data.genres).reduce((a,b)=>a+b,0);
+      const icons={Strategy:'♟️',Sports:'⚽',Action:'⚔️',RPG:'🧙',Simulation:'🎮'};
+      const ghtml=Object.entries(data.genres).sort((a,b)=>b[1]-a[1]).map(([g,c])=>`
+        <div class="grow"><span class="gname">${icons[g]||''} ${g}</span>
+        <div class="gtrk"><div class="gfil" style="width:${Math.round(c/tot*100)}%"></div></div>
+        <span class="gcnt">${c}</span></div>`).join('');
+      const t=data.tiers||{};
+      el.innerHTML=`<div class="pt pk">📊 Dataset Analytics</div>
+        <div class="dsgrid">
+          <div class="dsbox"><div class="dslbl">Total Players</div><div class="dsval">4,999</div></div>
+          <div class="dsbox"><div class="dslbl">Top Score</div><div class="dsval">143K</div></div>
+          <div class="dsbox"><div class="dslbl">Immortal</div><div class="dsval">${t.Immortal||0}</div></div>
+          <div class="dsbox"><div class="dslbl">Diamond</div><div class="dsval">${t.Diamond||0}</div></div>
+        </div>
+        <div class="pt pk">🎮 Genre Distribution</div>
+        <div class="gbr">${ghtml}</div>
+        <div class="pt pk">🏆 Achievements</div>`;
+      const ra=await fetch('/api/achievements');
+      const{data:achs}=await ra.json();
+      el.innerHTML+=`<div class="al">${achs.map(a=>`<div class="ai"><span class="aico">${a.icon}</span><div><div class="an">${a.name}</div><div class="adsc">${a.desc}</div></div></div>`).join('')}</div>`;
+    }catch(e){}
+  }
+}
+
+// ── RESET ────────────────────────────────────────────────────────────────────
+async function resetData(){
+  if(!confirm(`Reset ${mode} leaderboard to original data?`))return;
+  const r=await fetch(`/api/reset?mode=${mode}`,{method:'POST'});
+  const res=await r.json();
+  if(res.ok){toast('sc2','🔄 Reset','Data restored!');loadPage(0);loadPicker();}
+}
+
+// ── SEARCH API (also handles tier+engagement filters on backend) ─────────────
+// Note: tier & engagement filters are client-merged with query for now.
+// They filter the already-returned data after search.
+
+// ── UTIL ─────────────────────────────────────────────────────────────────────
+function N(n){ return Number(n).toLocaleString(); }
+
+// ── THEME TOGGLE ─────────────────────────────────────────────────────────────
+function toggleTheme(){
+  const isWhite = document.body.classList.toggle('white-mode');
+  const btn = document.getElementById('themeBtn');
+  btn.textContent = isWhite ? '🌙 DARK' : '☀️ LIGHT';
+  try{ localStorage.setItem('nexus-theme', isWhite?'white':'dark'); }catch(e){}
+}
+function initTheme(){
+  let saved='dark';
+  try{ saved=localStorage.getItem('nexus-theme')||'dark'; }catch(e){}
+  if(saved==='white'){
+    document.body.classList.add('white-mode');
+    document.getElementById('themeBtn').textContent='🌙 DARK';
+  } else {
+    document.getElementById('themeBtn').textContent='☀️ LIGHT';
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+async function init(){
+  initTheme();
+  await Promise.all([loadPage(0), loadPicker(), updStats()]);
+  await renderBottom();
+  connectWS();
+  setInterval(updStats,5000);
+}
+init();
+</script>
+</body>
+</html>
